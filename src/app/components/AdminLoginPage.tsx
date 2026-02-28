@@ -13,6 +13,7 @@ interface AdminLoginPageProps {
 }
 
 export function AdminLoginPage({ onNavigate, onLogin }: AdminLoginPageProps) {
+  const showDemoCredentials = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true';
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,14 +98,16 @@ export function AdminLoginPage({ onNavigate, onLogin }: AdminLoginPageProps) {
                   </Alert>
                 )}
 
-                <Alert className="bg-white/5 border-white/10 text-white">
-                  <Info className="h-4 w-4 text-white" />
-                  <AlertDescription className="text-sm">
-                    <strong>Akses Admin:</strong><br/>
-                    Username: <code>admin</code><br/>
-                    Password: <code>admin</code>
-                  </AlertDescription>
-                </Alert>
+                {showDemoCredentials && (
+                  <Alert className="bg-white/5 border-white/10 text-white">
+                    <Info className="h-4 w-4 text-white" />
+                    <AlertDescription className="text-sm">
+                      <strong>Akses Admin (Demo):</strong><br/>
+                      Username: <code>admin</code><br/>
+                      Password: <code>admin</code>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="admin-username">Username</Label>

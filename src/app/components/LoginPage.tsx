@@ -14,6 +14,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
+  const showDemoCredentials = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true';
   const [activeTab, setActiveTab] = useState('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -135,14 +136,16 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
                       />
                     </div>
 
-                    <div className="bg-blue-50 p-3 rounded-lg flex items-start gap-3 border border-blue-100">
-                      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm text-blue-800">
-                        <p className="font-semibold mb-1">Akun Demo Relawan:</p>
-                        <p>Email: <code className="bg-blue-100 px-1 rounded">relawan.demo@simrp.app</code></p>
-                        <p>Pass: <code className="bg-blue-100 px-1 rounded">password123</code></p>
+                    {showDemoCredentials && (
+                      <div className="bg-blue-50 p-3 rounded-lg flex items-start gap-3 border border-blue-100">
+                        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-800">
+                          <p className="font-semibold mb-1">Akun Demo Relawan:</p>
+                          <p>Email: <code className="bg-blue-100 px-1 rounded">relawan.demo@simrp.app</code></p>
+                          <p>Pass: <code className="bg-blue-100 px-1 rounded">password123</code></p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800 h-12 rounded-xl text-lg font-bold" disabled={loading}>
                       {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memuat...</> : 'Masuk'}
@@ -166,13 +169,15 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
                       </Alert>
                     )}
 
-                    <Alert className="bg-blue-50 border-blue-100 text-blue-900">
-                      <Info className="h-4 w-4 text-blue-700" />
-                      <AlertDescription className="text-sm">
-                        <strong>Akses Moderator (ASN):</strong><br />
-                        Contoh akun: moderator1.demo@simrp.app / password123
-                      </AlertDescription>
-                    </Alert>
+                    {showDemoCredentials && (
+                      <Alert className="bg-blue-50 border-blue-100 text-blue-900">
+                        <Info className="h-4 w-4 text-blue-700" />
+                        <AlertDescription className="text-sm">
+                          <strong>Akses Moderator (ASN):</strong><br />
+                          Contoh akun: moderator1.demo@simrp.app / password123
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="moderator-email">Email</Label>

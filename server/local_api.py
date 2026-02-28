@@ -3,6 +3,10 @@ import os
 import re
 import sqlite3
 import uuid
+import hmac
+import secrets
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,6 +19,30 @@ DB_PATH = Path(os.environ.get("SIMRP_DB_PATH", str(DB_DIR / "runtime" / "databas
 GEO_PATH = ROOT_DIR / "src" / "data" / "geographicData.ts"
 API_PREFIX = "/make-server-32aa5c5c"
 
+APP_ENV = str(os.environ.get("SIMRP_ENV", "development")).strip().lower()
+IS_PRODUCTION = APP_ENV in ("prod", "production")
+PBKDF2_ITERATIONS = int(os.environ.get("SIMRP_PBKDF2_ITERATIONS", "210000"))
+MAX_BODY_BYTES = int(os.environ.get("SIMRP_MAX_BODY_BYTES", str(8 * 1024 * 1024)))
+SESSION_TTL_HOURS = int(os.environ.get("SIMRP_SESSION_TTL_HOURS", "24" if IS_PRODUCTION else "168"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("SIMRP_RATE_LIMIT_WINDOW_SECONDS", "60"))
+RATE_LIMIT_AUTH_MAX = int(os.environ.get("SIMRP_RATE_LIMIT_AUTH_MAX", "10"))
+RATE_LIMIT_MUTATION_MAX = int(os.environ.get("SIMRP_RATE_LIMIT_MUTATION_MAX", "120"))
+
+DEV_ALLOWED_ORIGINS = {
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+}
+raw_allowed_origins = str(os.environ.get("SIMRP_ALLOWED_ORIGINS", "")).strip()
+ALLOWED_ORIGINS = {item.strip() for item in raw_allowed_origins.split(",") if item.strip()}
+
+ADMIN_LOGIN_USERNAME = str(os.environ.get("SIMRP_ADMIN_LOGIN_USERNAME", "")).strip()
+ADMIN_LOGIN_PASSWORD = str(os.environ.get("SIMRP_ADMIN_LOGIN_PASSWORD", "")).strip()
+
+_rate_lock = threading.Lock()
+_rate_hits = {}
+
+EMAIL_PATTERN = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
 
 def utc_now_iso():
   return datetime.now(timezone.utc).isoformat()
@@ -22,7 +50,7 @@ def utc_now_iso():
 
 def hash_password(password):
   salt = os.urandom(16)
-  digest = pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
+  digest = pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
   return f"{salt.hex()}:{digest.hex()}"
 
 
@@ -33,8 +61,75 @@ def verify_password(password, encoded):
     expected = bytes.fromhex(digest_hex)
   except Exception:
     return False
-  got = pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
-  return got == expected
+  got = pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
+  return hmac.compare_digest(got, expected)
+
+
+def valid_email(email):
+  return bool(EMAIL_PATTERN.match(str(email or "").strip()))
+
+
+def valid_password(password):
+  s = str(password or "")
+  if len(s) < 8:
+    return False
+  has_alpha = any(ch.isalpha() for ch in s)
+  has_digit = any(ch.isdigit() for ch in s)
+  return has_alpha and has_digit
+
+
+def bounded_text(value, max_len):
+  text = str(value or "").strip()
+  if len(text) > max_len:
+    raise ValueError(f"Input terlalu panjang (maksimal {max_len} karakter)")
+  return text
+
+
+def client_ip(handler):
+  forwarded = str(handler.headers.get("X-Forwarded-For", "")).strip()
+  if forwarded:
+    return forwarded.split(",")[0].strip()
+  return str(handler.client_address[0] if handler.client_address else "unknown")
+
+
+def resolve_cors_origin(handler):
+  origin = str(handler.headers.get("Origin", "")).strip()
+  if not origin:
+    return None
+  if origin in ALLOWED_ORIGINS:
+    return origin
+  if not IS_PRODUCTION and origin in DEV_ALLOWED_ORIGINS:
+    return origin
+  return None
+
+
+def add_common_headers(handler):
+  handler.send_header("X-Content-Type-Options", "nosniff")
+  handler.send_header("X-Frame-Options", "DENY")
+  handler.send_header("Referrer-Policy", "no-referrer")
+  handler.send_header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+  handler.send_header("Cache-Control", "no-store")
+  origin = resolve_cors_origin(handler)
+  if origin:
+    handler.send_header("Access-Control-Allow-Origin", origin)
+    handler.send_header("Vary", "Origin")
+    handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    handler.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+
+def rate_limited(handler, bucket, limit, window_seconds):
+  now = time.time()
+  key = f"{bucket}:{client_ip(handler)}"
+  with _rate_lock:
+    hits = _rate_hits.get(key, [])
+    threshold = now - window_seconds
+    hits = [item for item in hits if item >= threshold]
+    if len(hits) >= limit:
+      _rate_hits[key] = hits
+      return True
+    hits.append(now)
+    _rate_hits[key] = hits
+  return False
 
 
 def open_sqlite(path):
@@ -119,9 +214,7 @@ def write_json(handler, code, payload):
   handler.send_response(code)
   handler.send_header("Content-Type", "application/json")
   handler.send_header("Content-Length", str(len(body)))
-  handler.send_header("Access-Control-Allow-Origin", "*")
-  handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-  handler.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  add_common_headers(handler)
   handler.end_headers()
   handler.wfile.write(body)
 
@@ -130,16 +223,24 @@ def parse_json_body(handler):
   length = int(handler.headers.get("Content-Length", "0"))
   if length <= 0:
     return {}
+  if length > MAX_BODY_BYTES:
+    raise ValueError("Payload terlalu besar")
+  content_type = str(handler.headers.get("Content-Type", "")).lower()
+  if content_type and "application/json" not in content_type:
+    raise ValueError("Content-Type harus application/json")
   raw = handler.rfile.read(length).decode("utf-8")
   if not raw:
     return {}
-  return json.loads(raw)
+  try:
+    return json.loads(raw)
+  except json.JSONDecodeError as exc:
+    raise ValueError("Format JSON tidak valid") from exc
 
 
 def create_session(conn, user_id):
-  token = str(uuid.uuid4())
+  token = secrets.token_urlsafe(48)
   now = utc_now_iso()
-  expires = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+  expires = (datetime.now(timezone.utc) + timedelta(hours=SESSION_TTL_HOURS)).isoformat()
   execute(
     conn,
     "INSERT INTO sessions(token, user_id, expires_at, created_at) VALUES(?, ?, ?, ?)",
@@ -368,6 +469,25 @@ def init_schema():
   execute(
     conn,
     """
+    CREATE TABLE IF NOT EXISTS collaboration_requests (
+      id TEXT PRIMARY KEY,
+      organization_name TEXT NOT NULL,
+      pic_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      support_type TEXT NOT NULL CHECK(support_type IN ('dana','konsumsi','peralatan','media_partner','lainnya')),
+      support_description TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
+      reviewed_by_user_id TEXT,
+      reviewed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id)
+    )
+    """,
+  )
+  execute(
+    conn,
+    """
     CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -570,7 +690,13 @@ def insert_user(conn, name, email, password, role_code, *, is_ksh=0, tier=None, 
 
 
 def seed_demo(conn):
-  insert_user(conn, "Administrator", "admin@simrp.local", "admin", "admin", kelurahan_name="Keputih")
+  admin_seed_password = str(os.environ.get("SIMRP_SEED_ADMIN_PASSWORD", "")).strip()
+  if not admin_seed_password:
+    admin_seed_password = "admin" if not IS_PRODUCTION else secrets.token_urlsafe(18)
+    if IS_PRODUCTION:
+      print("[SECURITY] Generated random seed admin password via SIMRP_SEED_ADMIN_PASSWORD")
+      print(f"[SECURITY] Seed admin password (save securely): {admin_seed_password}")
+  insert_user(conn, "Administrator", "admin@simrp.local", admin_seed_password, "admin", kelurahan_name="Keputih")
   insert_user(conn, "Andi Relawan", "relawan.demo@simrp.app", "password123", "user", kelurahan_name="Bulak")
   insert_user(conn, "Nia Relawan", "relawan2.demo@simrp.app", "password123", "user", kelurahan_name="Keputih")
   insert_user(conn, "Budi Relawan", "relawan3.demo@simrp.app", "password123", "user", kelurahan_name="Wonorejo")
@@ -613,6 +739,39 @@ def seed_demo(conn):
         event[0], event[1], event[2], event[3], event[4], event[5], event[6], event[7],
         event[8], event[9], event[10], creator["id"], event[11], utc_now_iso(), utc_now_iso(), utc_now_iso() if event[11] == "published" else None
       ),
+    )
+
+  requests = [
+    (
+      "collab-seed-1",
+      "Komunitas Hijau Surabaya",
+      "Rina Putri",
+      "rina@hijausby.id",
+      "peralatan",
+      "Dukungan alat kebersihan untuk 3 kegiatan lingkungan di kelurahan.",
+      "pending",
+    ),
+    (
+      "collab-seed-2",
+      "PT Sejahtera Pangan",
+      "Dedi Saputra",
+      "dedi@sejahterapangan.co.id",
+      "konsumsi",
+      "Penyediaan konsumsi relawan pada kegiatan kemasyarakatan bulanan.",
+      "pending",
+    ),
+  ]
+  for req in requests:
+    execute(
+      conn,
+      """
+      INSERT OR IGNORE INTO collaboration_requests(
+        id, organization_name, pic_name, email, support_type, support_description,
+        status, reviewed_by_user_id, reviewed_at, created_at, updated_at
+      )
+      VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+      """,
+      (req[0], req[1], req[2], req[3], req[4], req[5], req[6], utc_now_iso(), utc_now_iso()),
     )
 
 
@@ -803,6 +962,28 @@ class Handler(BaseHTTPRequestHandler):
           result.append(out)
         return write_json(self, 200, {"kecamatan": result})
 
+      if path == f"{API_PREFIX}/landing/leaderboard":
+        rows = conn.execute(
+          """
+          SELECT kelurahan.name AS kelurahan, kecamatan.name AS kecamatan, xp_kelurahan.total_xp AS xp
+          FROM xp_kelurahan
+          JOIN kelurahan ON kelurahan.id = xp_kelurahan.kelurahan_id
+          JOIN kecamatan ON kecamatan.id = kelurahan.kecamatan_id
+          ORDER BY xp_kelurahan.total_xp DESC, kelurahan.name ASC
+          LIMIT 7
+          """
+        ).fetchall()
+        entries = [
+          {
+            "rank": idx + 1,
+            "kelurahan": row["kelurahan"],
+            "kecamatan": row["kecamatan"],
+            "xp": int(row["xp"]),
+          }
+          for idx, row in enumerate(rows)
+        ]
+        return write_json(self, 200, {"leaderboard": entries})
+
       if path == f"{API_PREFIX}/kampung":
         actor = user_from_token(conn, self.headers.get("Authorization"))
         if not actor:
@@ -819,6 +1000,43 @@ class Handler(BaseHTTPRequestHandler):
         ).fetchall()
         data = [{"id": r["id"], "name": r["name"], "kecamatan": r["kecamatan"], "xp": int(r["xp"])} for r in rows]
         return write_json(self, 200, {"kampung": data})
+
+      if path == f"{API_PREFIX}/collaboration-requests":
+        actor = user_from_token(conn, self.headers.get("Authorization"))
+        if not actor:
+          return write_json(self, 401, {"error": "Unauthorized"})
+        if actor["role_code"] not in ("moderator_t2", "admin"):
+          return write_json(self, 403, {"error": "Hanya Moderator Tier 2/Admin"})
+        status_filter = query.get("status", [None])[0]
+        sql = """
+          SELECT collaboration_requests.*, users.name AS reviewer_name
+          FROM collaboration_requests
+          LEFT JOIN users ON users.id = collaboration_requests.reviewed_by_user_id
+          WHERE 1=1
+        """
+        params = []
+        if status_filter in ("pending", "approved", "rejected"):
+          sql += " AND collaboration_requests.status = ?"
+          params.append(status_filter)
+        sql += " ORDER BY collaboration_requests.created_at DESC"
+        rows = conn.execute(sql, tuple(params)).fetchall()
+        requests = []
+        for row in rows:
+          requests.append(
+            {
+              "id": row["id"],
+              "organizationName": row["organization_name"],
+              "picName": row["pic_name"],
+              "email": row["email"],
+              "supportType": row["support_type"],
+              "supportDescription": row["support_description"],
+              "status": row["status"],
+              "reviewedByName": row["reviewer_name"],
+              "reviewedAt": row["reviewed_at"],
+              "createdAt": row["created_at"],
+            }
+          )
+        return write_json(self, 200, {"requests": requests})
 
       if path == f"{API_PREFIX}/users":
         actor = user_from_token(conn, self.headers.get("Authorization"))
@@ -970,7 +1188,12 @@ class Handler(BaseHTTPRequestHandler):
         return write_json(self, 200, {"adjustments": out})
 
       return write_json(self, 404, {"error": "Not found"})
+    except ValueError as exc:
+      return write_json(self, 400, {"error": str(exc)})
     except Exception as exc:
+      print(f"[GET] error path={self.path}: {exc}")
+      if IS_PRODUCTION:
+        return write_json(self, 500, {"error": "Internal server error"})
       return write_json(self, 500, {"error": str(exc)})
     finally:
       conn.commit()
@@ -981,15 +1204,26 @@ class Handler(BaseHTTPRequestHandler):
     cleanup_adjustments(conn)
     try:
       path = urlparse(self.path).path
+      if rate_limited(self, "mutation", RATE_LIMIT_MUTATION_MAX, RATE_LIMIT_WINDOW_SECONDS):
+        return write_json(self, 429, {"error": "Terlalu banyak permintaan, coba lagi sebentar"})
       body = parse_json_body(self)
 
       if path == f"{API_PREFIX}/auth/signup":
+        if rate_limited(self, "auth-signup", RATE_LIMIT_AUTH_MAX, RATE_LIMIT_WINDOW_SECONDS):
+          return write_json(self, 429, {"error": "Terlalu banyak percobaan signup, coba lagi nanti"})
         if not body.get("email") or not body.get("password") or not body.get("name"):
           return write_json(self, 400, {"error": "Email, password, name wajib"})
         email = str(body.get("email")).strip().lower()
+        if not valid_email(email):
+          return write_json(self, 400, {"error": "Format email tidak valid"})
+        if not valid_password(body.get("password")):
+          return write_json(self, 400, {"error": "Password minimal 8 karakter dan kombinasi huruf-angka"})
+        name = bounded_text(body.get("name"), 120)
+        nik = bounded_text(body.get("nik", ""), 32)
+        rw = bounded_text(body.get("rw", ""), 16)
         if conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
           return write_json(self, 400, {"error": "Email sudah terdaftar"})
-        kel_name = body.get("kelurahan")
+        kel_name = bounded_text(body.get("kelurahan"), 120)
         kel = conn.execute(
           """
           SELECT kelurahan.id AS id, kecamatan.id AS kec_id
@@ -1013,11 +1247,11 @@ class Handler(BaseHTTPRequestHandler):
           """,
           (
             user_id,
-            body.get("name"),
+            name,
             email,
             hash_password(body.get("password")),
-            body.get("nik", ""),
-            body.get("rw", ""),
+            nik,
+            rw,
             kel["id"],
             kel["kec_id"],
             now,
@@ -1029,7 +1263,11 @@ class Handler(BaseHTTPRequestHandler):
         return write_json(self, 200, {"success": True, "token": token, "user": get_user_payload(conn, user)})
 
       if path == f"{API_PREFIX}/auth/login":
+        if rate_limited(self, "auth-login", RATE_LIMIT_AUTH_MAX, RATE_LIMIT_WINDOW_SECONDS):
+          return write_json(self, 429, {"error": "Terlalu banyak percobaan login, coba lagi nanti"})
         email = str(body.get("email", "")).strip().lower()
+        if not valid_email(email):
+          return write_json(self, 400, {"error": "Format email tidak valid"})
         password = str(body.get("password", ""))
         user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         if not user or not verify_password(password, user["password_hash"]):
@@ -1038,20 +1276,92 @@ class Handler(BaseHTTPRequestHandler):
         return write_json(self, 200, {"success": True, "token": token, "user": get_user_payload(conn, user)})
 
       if path == f"{API_PREFIX}/auth/admin-login":
-        if body.get("username") != "admin" or body.get("password") != "admin":
+        if rate_limited(self, "auth-admin-login", RATE_LIMIT_AUTH_MAX, RATE_LIMIT_WINDOW_SECONDS):
+          return write_json(self, 429, {"error": "Terlalu banyak percobaan login admin, coba lagi nanti"})
+        if IS_PRODUCTION and (not ADMIN_LOGIN_USERNAME or not ADMIN_LOGIN_PASSWORD):
+          return write_json(self, 403, {"error": "Admin login tidak dikonfigurasi untuk production"})
+        username = str(body.get("username", "")).strip()
+        password = str(body.get("password", ""))
+        expected_username = ADMIN_LOGIN_USERNAME if ADMIN_LOGIN_USERNAME else "admin"
+        expected_password = ADMIN_LOGIN_PASSWORD if ADMIN_LOGIN_PASSWORD else "admin"
+        valid_user = hmac.compare_digest(username, expected_username)
+        valid_pass = hmac.compare_digest(password, expected_password)
+        if not valid_user or not valid_pass:
           return write_json(self, 401, {"error": "Invalid credentials"})
         admin = conn.execute("SELECT * FROM users WHERE role_code = 'admin' LIMIT 1").fetchone()
+        if not admin:
+          return write_json(self, 500, {"error": "Akun admin tidak ditemukan"})
         token = create_session(conn, admin["id"])
         return write_json(self, 200, {"success": True, "token": token, "user": get_user_payload(conn, admin)})
+
+      if path == f"{API_PREFIX}/collaboration-requests":
+        organization_name = bounded_text(body.get("organizationName", ""), 180)
+        pic_name = bounded_text(body.get("picName", ""), 120)
+        email = str(body.get("email", "")).strip().lower()
+        support_type = str(body.get("supportType", "")).strip().lower()
+        support_description = bounded_text(body.get("supportDescription", ""), 2000)
+        if not organization_name or not pic_name or not email or not support_type or not support_description:
+          return write_json(self, 400, {"error": "Semua field kolaborasi wajib diisi"})
+        if support_type not in ("dana", "konsumsi", "peralatan", "media_partner", "lainnya"):
+          return write_json(self, 400, {"error": "Jenis dukungan tidak valid"})
+        if not valid_email(email):
+          return write_json(self, 400, {"error": "Format email tidak valid"})
+        req_id = f"collab-{uuid.uuid4().hex[:10]}"
+        now = utc_now_iso()
+        execute(
+          conn,
+          """
+          INSERT INTO collaboration_requests(
+            id, organization_name, pic_name, email, support_type, support_description,
+            status, reviewed_by_user_id, reviewed_at, created_at, updated_at
+          )
+          VALUES(?, ?, ?, ?, ?, ?, 'pending', NULL, NULL, ?, ?)
+          """,
+          (req_id, organization_name, pic_name, email, support_type, support_description, now, now),
+        )
+        return write_json(self, 200, {"success": True, "request": {"id": req_id}})
+
+      if path == f"{API_PREFIX}/auth/logout":
+        auth = self.headers.get("Authorization")
+        if not auth or not auth.startswith("Bearer "):
+          return write_json(self, 401, {"error": "Unauthorized"})
+        token = auth.split(" ", 1)[1].strip()
+        execute(conn, "DELETE FROM sessions WHERE token = ?", (token,))
+        return write_json(self, 200, {"success": True})
 
       actor = user_from_token(conn, self.headers.get("Authorization"))
       if not actor:
         return write_json(self, 401, {"error": "Unauthorized"})
 
+      if path.endswith("/approval") and path.startswith(f"{API_PREFIX}/collaboration-requests/"):
+        if actor["role_code"] not in ("moderator_t2", "admin"):
+          return write_json(self, 403, {"error": "Hanya Moderator Tier 2/Admin yang boleh approve"})
+        req_id = path.split("/")[-2]
+        row = conn.execute("SELECT id, status FROM collaboration_requests WHERE id = ?", (req_id,)).fetchone()
+        if not row:
+          return write_json(self, 404, {"error": "Permintaan tidak ditemukan"})
+        if row["status"] != "pending":
+          return write_json(self, 400, {"error": "Permintaan sudah diproses"})
+        approved = bool(body.get("approved"))
+        now = utc_now_iso()
+        execute(
+          conn,
+          """
+          UPDATE collaboration_requests
+          SET status = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ?
+          WHERE id = ?
+          """,
+          ("approved" if approved else "rejected", actor["id"], now, now, req_id),
+        )
+        return write_json(self, 200, {"success": True})
+
       if path == f"{API_PREFIX}/events":
         if not can_create_event(actor):
           return write_json(self, 403, {"error": "Hanya ASN Tier 1/Admin yang boleh input kegiatan"})
-        title = str(body.get("title", "")).strip()
+        title = bounded_text(body.get("title", ""), 200)
+        description = bounded_text(body.get("description", ""), 3000)
+        time_text = bounded_text(body.get("time", ""), 16)
+        location = bounded_text(body.get("location", ""), 220)
         date = str(body.get("date", "")).strip()
         scope_type = str(body.get("scopeType", "kelurahan")).strip().lower()
         if not title or not date:
@@ -1078,6 +1388,18 @@ class Handler(BaseHTTPRequestHandler):
           kec_exists = conn.execute("SELECT id FROM kecamatan WHERE id = ?", (kecamatan_id,)).fetchone()
           if not kec_exists:
             return write_json(self, 400, {"error": "Kecamatan tidak ditemukan"})
+        try:
+          quota = int(body.get("quota", 0))
+        except Exception:
+          return write_json(self, 400, {"error": "Kuota harus angka"})
+        if quota < 0 or quota > 10000:
+          return write_json(self, 400, {"error": "Kuota harus 0-10000"})
+        try:
+          pillar = int(body.get("pillar", 1))
+        except Exception:
+          return write_json(self, 400, {"error": "Pilar harus angka"})
+        if pillar not in (1, 2, 3, 4):
+          return write_json(self, 400, {"error": "Pilar harus 1-4"})
         event_id = f"event-{uuid.uuid4().hex[:10]}"
         now = utc_now_iso()
         execute(
@@ -1092,12 +1414,12 @@ class Handler(BaseHTTPRequestHandler):
           (
             event_id,
             title,
-            body.get("description", ""),
-            int(body.get("pillar", 1)),
+            description,
+            pillar,
             date,
-            body.get("time", ""),
-            body.get("location", ""),
-            int(body.get("quota", 0)),
+            time_text,
+            location,
+            quota,
             scope_type,
             kecamatan_id,
             kelurahan_id,
@@ -1197,6 +1519,8 @@ class Handler(BaseHTTPRequestHandler):
         if actor["role_code"] not in ("user", "ksh"):
           return write_json(self, 403, {"error": "Hanya relawan/KSH yang dapat lapor"})
         event_id = body.get("eventId")
+        if not event_id:
+          return write_json(self, 400, {"error": "Event ID wajib diisi"})
         event = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
         if not event or event["status"] != "completed":
           return write_json(self, 400, {"error": "Laporan hanya setelah event selesai"})
@@ -1206,6 +1530,19 @@ class Handler(BaseHTTPRequestHandler):
         ).fetchone()
         if not part:
           return write_json(self, 400, {"error": "Relawan belum terdaftar pada event ini"})
+        try:
+          participants = int(body.get("participants", 1))
+        except Exception:
+          return write_json(self, 400, {"error": "Jumlah peserta harus angka"})
+        if participants < 1 or participants > 10000:
+          return write_json(self, 400, {"error": "Jumlah peserta harus 1-10000"})
+        outcome_tags = body.get("outcomeTags", [])
+        if not isinstance(outcome_tags, list):
+          return write_json(self, 400, {"error": "Outcome tags harus berbentuk array"})
+        if len(outcome_tags) > 20:
+          return write_json(self, 400, {"error": "Outcome tags maksimal 20 item"})
+        safe_tags = [bounded_text(tag, 60) for tag in outcome_tags]
+        photo_url = bounded_text(body.get("photoUrl", ""), 2_000_000)
         report_id = f"report-{uuid.uuid4().hex[:12]}"
         now = utc_now_iso()
         execute(
@@ -1221,10 +1558,10 @@ class Handler(BaseHTTPRequestHandler):
             report_id,
             event_id,
             actor["id"],
-            int(body.get("participants", 1)),
+            participants,
             json.dumps({"attendance": True, "post_event": True}),
-            json.dumps(body.get("outcomeTags", [])),
-            body.get("photoUrl"),
+            json.dumps(safe_tags),
+            photo_url,
             now,
             now,
           ),
@@ -1294,6 +1631,8 @@ class Handler(BaseHTTPRequestHandler):
         if actor["role_code"] != "admin":
           return write_json(self, 403, {"error": "Admin only"})
         points = int(body.get("points", 0))
+        if points < -500 or points > 500:
+          return write_json(self, 400, {"error": "Penyesuaian poin maksimal +/-500"})
         now = utc_now_iso()
         execute(conn, "UPDATE users SET points = points + ?, updated_at = ? WHERE id = ?", (points, now, body.get("userId")))
         execute(
@@ -1306,7 +1645,7 @@ class Handler(BaseHTTPRequestHandler):
             str(uuid.uuid4()),
             body.get("userId"),
             json.dumps({"points": points}),
-            body.get("reason", "admin points"),
+            bounded_text(body.get("reason", "admin points"), 300),
             (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
             now,
           ),
@@ -1333,7 +1672,7 @@ class Handler(BaseHTTPRequestHandler):
             str(uuid.uuid4()),
             target_id,
             json.dumps({"badgeId": badge_id}),
-            body.get("reason", "admin badge"),
+            bounded_text(body.get("reason", "admin badge"), 300),
             (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
             now,
           ),
@@ -1341,7 +1680,12 @@ class Handler(BaseHTTPRequestHandler):
         return write_json(self, 200, {"success": True})
 
       return write_json(self, 404, {"error": "Not found"})
+    except ValueError as exc:
+      return write_json(self, 400, {"error": str(exc)})
     except Exception as exc:
+      print(f"[POST] error path={self.path}: {exc}")
+      if IS_PRODUCTION:
+        return write_json(self, 500, {"error": "Internal server error"})
       return write_json(self, 500, {"error": str(exc)})
     finally:
       conn.commit()
@@ -1351,6 +1695,8 @@ class Handler(BaseHTTPRequestHandler):
     conn = connect_db()
     try:
       path = urlparse(self.path).path
+      if rate_limited(self, "mutation", RATE_LIMIT_MUTATION_MAX, RATE_LIMIT_WINDOW_SECONDS):
+        return write_json(self, 429, {"error": "Terlalu banyak permintaan, coba lagi sebentar"})
       if path.startswith(f"{API_PREFIX}/users/"):
         actor = user_from_token(conn, self.headers.get("Authorization"))
         if not actor:
@@ -1362,9 +1708,10 @@ class Handler(BaseHTTPRequestHandler):
         fields = []
         params = []
         for key in ("name", "rw", "nik"):
-          if key in body:
+          if key in body and body[key] is not None:
             fields.append(f"{key} = ?")
-            params.append(body[key])
+            max_len = 120 if key == "name" else (16 if key == "rw" else 32)
+            params.append(bounded_text(body[key], max_len))
         if not fields:
           return write_json(self, 400, {"error": "No fields"})
         fields.append("updated_at = ?")
@@ -1374,7 +1721,12 @@ class Handler(BaseHTTPRequestHandler):
         row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         return write_json(self, 200, {"success": True, "user": get_user_payload(conn, row)})
       return write_json(self, 404, {"error": "Not found"})
+    except ValueError as exc:
+      return write_json(self, 400, {"error": str(exc)})
     except Exception as exc:
+      print(f"[PUT] error path={self.path}: {exc}")
+      if IS_PRODUCTION:
+        return write_json(self, 500, {"error": "Internal server error"})
       return write_json(self, 500, {"error": str(exc)})
     finally:
       conn.commit()

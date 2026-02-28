@@ -1,767 +1,214 @@
-﻿# ðŸš€ SIMRP - SIM Relawan Kampung Pancasila
-## GRAND DESIGN FINAL - PRODUCTION READY
+# GRAND DESIGN DOKUMENTASI
+## Sistem Informasi Manajemen RElawan KAmpung Pancasila (SIMREKAP)
+**"The Pillar-Balance & Maturity Engine"**
 
----
+Project Owner: Dinas Komunikasi dan Informatika Kota Surabaya  
+Tim Pengembang: Mahasiswa Kerja Praktik PENS  
+Status: Proposal Operasional (Pitch Version)  
+Versi: 2.4 (Kampung-Centric, revisi struktur aktor dan kolaborasi)
 
-## ðŸ“‹ EXECUTIVE SUMMARY
+## EXECUTIVE SUMMARY
+SIMREKAP adalah sistem operasional digital untuk Program Kampung Pancasila Surabaya. Fokus SIMREKAP adalah memastikan aktivitas kampung tidak berhenti sebagai kegiatan lapangan saja, tetapi berubah menjadi data kinerja kampung yang terstruktur, tervalidasi, dan berguna untuk evaluasi kebijakan.
 
-**SIMRP (Sistem Informasi Manajemen Relawan Pancasila)** adalah aplikasi web manajemen relawan komprehensif untuk program Kampung Pancasila Surabaya di bawah Diskominfo Kota Surabaya. Sistem ini telah **100% SELESAI** dan **PRODUCTION-READY** dengan arsitektur yang matang, anti-fraud system, dan UX yang dioptimalkan.
+Inti konsep SIMREKAP adalah **Gamifikasi Kampung-Centric**: yang dinilai adalah kampung (kelurahan), bukan kompetisi individu. Sistem mengarahkan kampung agar berkembang seimbang di empat pilar melalui Pillar-Balance Engine.
 
-**Status:** âœ… PRODUCTION READY  
-**Version:** 1.0.0 FINAL  
-**Last Updated:** 26 Januari 2025  
-**Tech Stack:** React + TypeScript + Tailwind CSS v4 + Supabase + Deno Edge Functions
+## 1. LANDASAN PROGRAM: KAMPUNG PANCASILA
+Kampung Pancasila Surabaya merupakan gerakan berbasis kampung/RW yang menekankan gotong royong, penyelesaian masalah sosial, dan penguatan kapasitas wilayah melalui satgas lintas aktor.
 
----
+Gerakan ini berjalan melalui empat bidang utama:
+- Lingkungan
+- Ekonomi
+- Sosial Budaya
+- Kemasyarakatan
 
-## ðŸŽ¯ FITUR UTAMA (100% IMPLEMENTED)
+Karena keberhasilan kota ditopang oleh keberhasilan kampung, dibutuhkan sistem yang mampu membaca progres kampung secara konsisten, adil, dan terdokumentasi.
 
-### 1. **Discord-Style Role Management System** âœ…
-**Inspired by Discord** - Admin bisa assign/unassign role seperti sistem role di Discord
+## 2. PERMASALAHAN YANG DISASAR
+Permasalahan operasional utama di lapangan:
+- Aktivitas kampung berjalan, tetapi data dampak belum seragam.
+- Jejak verifikasi kegiatan dan laporan belum tertata optimal.
+- Pilar tertentu cenderung dominan, pilar lain tertinggal.
+- Kontribusi relawan belum selalu kuat menjadi basis data kebijakan.
 
-#### Role Hierarchy:
-```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  ADMIN (God Mode)                   â”‚
-â”‚  â”œâ”€â”€ Full system control            â”‚
-â”‚  â”œâ”€â”€ Assign/remove moderator role   â”‚
-â”‚  â”œâ”€â”€ Temporary adjustments (24h)    â”‚
-â”‚  â””â”€â”€ View all dashboards            â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  MODERATOR (Validator)              â”‚
-â”‚  â”œâ”€â”€ Verify reports                 â”‚
-â”‚  â”œâ”€â”€ Manage events                  â”‚
-â”‚  â”œâ”€â”€ Can be assigned/unassigned     â”‚
-â”‚  â””â”€â”€ View user dashboard            â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  USER (Relawan)                     â”‚
-â”‚  â”œâ”€â”€ Join events                    â”‚
-â”‚  â”œâ”€â”€ Submit reports                 â”‚
-â”‚  â”œâ”€â”€ Earn points & badges           â”‚
-â”‚  â””â”€â”€ Standard access                â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-```
+SIMREKAP dirancang untuk menutup gap tersebut dengan alur terintegrasi dari kegiatan, verifikasi, pelaporan, hingga pembacaan performa kampung.
 
-#### POV Switcher (Discord-Style View Switcher):
-- **Admin** dapat switch ke view: Admin â†’ Moderator â†’ User
-- **Moderator** dapat switch ke view: Moderator â†’ User
-- **User** hanya melihat User view
-- Dropdown menu visual dengan badge & warna indikator
-- State persistent di localStorage
-- Selalu visible di header (fixed position)
+## 3. SOLUSI INTI: GAMIFIKASI KAMPUNG-CENTRIC
+### 3.1 Prinsip Dasar
+Gamifikasi dipakai sebagai alat tata kelola dan pengarah perilaku kolektif kampung, bukan alat kompetisi personal.
 
-**Implementation:**
-- Component: `/src/app/components/POVSwitcher.tsx`
-- State management di `/src/app/App.tsx`
-- Props passed ke semua dashboard components
+### 3.2 Pillar-Balance Engine
+Engine memantau distribusi progres empat pilar. Jika ada ketimpangan, sistem mendorong kampung menyeimbangkan inisiasi kegiatan pada pilar yang tertinggal.
 
----
+### 3.3 XP Kampung dan Leaderboard Kampung
+- XP utama milik kampung (kelurahan).
+- XP pilar menunjukkan kekuatan relatif per pilar.
+- Leaderboard dipakai untuk pemetaan performa antar kampung.
 
-### 2. **Multi-Tier Leveling System** âœ…
-**Setiap role punya level progression sendiri!**
+## 4. DEFINISI AKTOR DAN PERAN (REVISI FINAL)
+### 4.1 Relawan (Warga Tinggal di Surabaya)
+Relawan adalah warga yang tinggal di Surabaya, termasuk mahasiswa/perantau yang berdomisili atau beraktivitas di Surabaya.
 
-#### USER LEVELS (7 Levels):
-```
-Level 1: ðŸŒ± Pendatang Baru (0-50 poin)
-  â””â”€â”€ Perks: Akses dasar, Join event, Buat laporan
+Peran relawan:
+- registrasi akun,
+- mengikuti kegiatan,
+- mengirim laporan kegiatan yang diikuti,
+- menerima poin kontribusi dan sertifikat kegiatan.
 
-Level 2: ðŸ˜ï¸ Tetangga Baik (51-150 poin)
-  â””â”€â”€ Perks: Badge perdana, Prioritas moderate
+### 4.2 KSH (Entitas Terpisah dari Relawan Umum)
+KSH adalah pengguna khusus operasional lapangan (kepanitiaan kegiatan kampung).
 
-Level 3: â­ Warga Aktif (151-300 poin)
-  â””â”€â”€ Perks: Ajukan proposal event, Bonus poin 1.1x
+Peran KSH:
+- mengelola jalannya kegiatan kampung di lapangan,
+- menandai kegiatan selesai,
+- mengisi output/ringkasan dampak kegiatan,
+- memastikan kelengkapan administrasi kegiatan.
 
-Level 4: ðŸŽ–ï¸ Tokoh Masyarakat (301-600 poin)
-  â””â”€â”€ Perks: Featured leaderboard, Bonus poin 1.2x
+Batasan KSH:
+- **tidak membuat draft kegiatan**,
+- **tidak mengajukan approval kegiatan**.
 
-Level 5: ðŸ¦¸ Pahlawan Kampung (601-1000 poin)
-  â””â”€â”€ Perks: Priority support, Event eksklusif, Bonus 1.3x
+### 4.3 Moderator Tier 1 - ASN Pendamping
+Peran:
+- inisiasi draft kegiatan,
+- monitoring kampung binaan yang menjadi tanggung jawabnya.
 
-Level 6: ðŸ‘´ Sesepuh Digital (1001-2000 poin)
-  â””â”€â”€ Perks: Mentor newbie, Sertifikat Perunggu
+Catatan:
+- Tier 1 tidak melakukan approval akhir.
 
-Level 7: ðŸ† Legend Kampung (2001+ poin)
-  â””â”€â”€ Perks: ALL ACCESS, Sertifikat Emas Kadis, Hall of Fame, Bonus 1.5x
-```
+### 4.4 Moderator Tier 2 - Verifikator Wilayah (Dengan Badge)
+Tier 2 dibedakan oleh badge agar cakupan kewenangannya jelas:
+- **Badge A: Kelurahan** -> menangani satu kelurahan.
+- **Badge B: Kecamatan** -> menangani satu kecamatan (berisi banyak kelurahan).
 
-#### MODERATOR LEVELS (5 Levels):
-```
-Level 1: ðŸ›¡ï¸ Mod Magang (0-100 poin)
-  â””â”€â”€ Perks: Verifikasi laporan, Max 20 laporan/hari
+Peran Tier 2:
+- approval kegiatan,
+- verifikasi laporan,
+- review permintaan kolaborasi mitra sesuai skala kontribusi.
 
-Level 2: ðŸ›¡ï¸â­ Mod Junior (101-500 poin)
-  â””â”€â”€ Perks: Max 50 laporan/hari, Edit event
+### 4.5 Moderator Tier 3 - OPD
+Tier 3 merepresentasikan OPD tematik (contoh: DLH, OPD ekonomi/ketenagakerjaan, dan OPD terkait lain) untuk:
+- monitoring agregat lintas wilayah,
+- analisis tren per pilar,
+- masukan kebijakan tingkat kota.
 
-Level 3: ðŸ›¡ï¸â­â­ Mod Senior (501-1500 poin)
-  â””â”€â”€ Perks: Unlimited verifikasi, Buat event
+### 4.6 Admin (Back-Office Sistem)
+Admin diposisikan sebagai pengelola aplikasi/sistem di balik layar:
+- menjaga stabilitas sistem,
+- mengelola konfigurasi teknis,
+- memastikan data dan alur berjalan.
 
-Level 4: ðŸ›¡ï¸â­â­â­ Mod Expert (1501-3000 poin)
-  â””â”€â”€ Perks: Akses analytics, Ban/Unban user
+Batasan desain operasional:
+- admin **bukan pengampu operasional kampung**,
+- admin **bukan pihak utama review kolaborasi kampung**.
 
-Level 5: ðŸ›¡ï¸ðŸ‘‘ Mod Legend (3001+ poin)
-  â””â”€â”€ Perks: ALL ACCESS, Recommend admin, Sertifikat Teladan
-```
+## 5. PIHAK EKSTERNAL: MITRA (NON-LOGIN)
+Mitra adalah pihak eksternal (komunitas/perusahaan/institusi) yang **tidak perlu login**.
 
-#### ADMIN LEVELS (3 Levels):
-```
-Level 1: ðŸ‘‘ Admin Junior (0-1000 poin)
-  â””â”€â”€ Perks: Full dashboard, User management, Event management
+Alur mitra:
+- mengisi form kolaborasi publik,
+- request masuk ke antrian moderator,
+- diproses oleh moderator sesuai skala kontribusi.
 
-Level 2: ðŸ‘‘â­ Admin Senior (1001-5000 poin)
-  â””â”€â”€ Perks: System settings, Data export, Analytics
+Skala kontribusi yang ditetapkan:
+- skala kelurahan,
+- skala kecamatan,
+- skala kota.
 
-Level 3: ðŸ‘‘ðŸ‘‘ Super Admin (5001+ poin)
-  â””â”€â”€ Perks: GOD MODE, Semua permission, Manage admin, Audit logs
-```
+Catatan desain:
+- form kolaborasi perlu memuat pilihan skala kontribusi secara eksplisit agar routing request tepat sasaran.
 
-**UX-Driven Level Visual:**
-- âœ… **Current Level**: Cerah (gradient hijau), dengan progress bar
-- âœ… **Completed Levels**: Hijau solid + checkmark icon
-- âœ… **Locked Levels**: Abu-abu pudar + lock icon
-- Progress percentage ditampilkan real-time
-- Poin yang dibutuhkan untuk level berikutnya jelas terlihat
+## 6. FITUR OPERASIONAL DAN STATUS
+### 6.1 Fitur Operasional Saat Ini (Live)
+- Landing publik + About + FAQ.
+- Form kolaborasi mitra publik.
+- Registrasi/login multi peran.
+- Alur kegiatan: draft -> approval -> published -> completed.
+- Laporan kegiatan peserta dan verifikasi moderator.
+- Dashboard per peran (user, moderator, admin).
+- Leaderboard kampung + ringkasan progres kampung.
 
-**Implementation:**
-- System logic: `/src/data/levelingSystem.ts`
-- Visual component: `/src/app/components/LevelProgressionCard.tsx`
-- Integrated di semua dashboards
+### 6.2 Fitur Penguatan (Dalam Kajian / Penyempurnaan)
+- popup peringatan ketimpangan pilar saat awal login ASN pendamping/Tier 2,
+- CTA otomatis untuk inisiasi program pada pilar yang kosong/tertinggal,
+- routing mitra berbasis skala kontribusi (kelurahan/kecamatan/kota) yang lebih ketat,
+- otomatisasi sertifikat 1 kegiatan 1 sertifikat secara end-to-end.
 
----
+## 7. ALUR BISNIS END-TO-END (RINGKAS)
+1. ASN Tier 1 inisiasi draft kegiatan kampung.  
+2. Tier 2 (badge kelurahan/kecamatan) melakukan review dan approval.  
+3. Kegiatan dipublikasikan, relawan mendaftar sesuai kuota.  
+4. KSH mengelola pelaksanaan, menandai kegiatan selesai, dan mengisi output.  
+5. Relawan peserta mengirim laporan kegiatan.  
+6. Tier 2 memverifikasi laporan.  
+7. Progres pilar dan XP kampung diperbarui.
 
-### 3. **Anti-Fraud System dengan Temporary Adjustments** âœ…
-**GENIUS DESIGN: Semua manual adjustment bersifat TEMPORARY (expire 24 jam)**
+## 8. APRESIASI RELAWAN: SERTIFIKAT DAN POIN
+Prinsip apresiasi relawan:
+- **1 kegiatan = 1 sertifikat kontribusi**.
+- Relawan menerima poin kontribusi pada dashboard.
+- Poin dapat ditukar menjadi voucher/manfaat layanan di Surabaya.
 
-#### Kenapa Temporary?
-**Masalah:** Admin yang punya teman bisa abuse power (kasih poin banyak ke temen)
-**Solusi:** Semua adjustment EXPIRE dalam 24 JAM otomatis!
+Skema penukaran (konsep operasional):
+- poin ditukar menjadi voucher (misalnya transportasi publik Surabaya),
+- setelah ditukar, poin berkurang/habis sesuai nilai penukaran,
+- mekanisme katalog reward disesuaikan dengan kerja sama layanan kota.
 
-#### Admin God Mode Features:
-```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  ADMIN GOD MODE (Experimental Mode)      â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  1. Role Management (Discord-Style)      â”‚
-â”‚     â”œâ”€â”€ Assign Moderator Role            â”‚
-â”‚     â”œâ”€â”€ Remove Moderator Role            â”‚
-â”‚     â””â”€â”€ Permanent (sampai dicabut)       â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  2. Temporary Points (Expires 24h)       â”‚
-â”‚     â”œâ”€â”€ Add 1-500 points                 â”‚
-â”‚     â”œâ”€â”€ Auto-expire after 24 hours       â”‚
-â”‚     â””â”€â”€ Reason required (audit trail)    â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  3. Temporary Badges (Expires 24h)       â”‚
-â”‚     â”œâ”€â”€ Add any badge                    â”‚
-â”‚     â”œâ”€â”€ Auto-expire after 24 hours       â”‚
-â”‚     â””â”€â”€ Validation check (max assigned)  â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  4. Audit History                        â”‚
-â”‚     â”œâ”€â”€ All actions logged               â”‚
-â”‚     â”œâ”€â”€ View active adjustments          â”‚
-â”‚     â””â”€â”€ Hours left until expiry          â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-```
+Catatan:
+- detail SLA penerbitan sertifikat otomatis masih dalam kajian operasional bersama KSH/moderator.
 
-#### Security Features:
-âœ… **Max Points Per Adjustment:** 1-500 poin (prevent massive fraud)  
-âœ… **Reason Required:** Setiap adjustment wajib punya alasan (audit trail)  
-âœ… **Auto-Expire:** Setelah 24 jam, adjustment hilang otomatis  
-âœ… **Logged:** Semua aksi tercatat dengan timestamp dan admin ID  
-âœ… **Visual Warning:** Banner kuning di atas form mengingatkan temporary nature  
+## 9. ALUR KOLABORASI MITRA
+1. Mitra isi form kolaborasi publik (tanpa login).  
+2. Mitra memilih skala kontribusi: kelurahan/kecamatan/kota.  
+3. Request masuk ke antrian moderator yang relevan.  
+4. Moderator Tier 2/Tier 3 memproses sesuai scope.  
+5. Status akhir: approved/rejected, lalu ditindaklanjuti operasional.
 
-**Implementation:**
-- Component: `/src/app/components/AdminGodMode.tsx`
-- Backend endpoints: `/supabase/functions/server/index.tsx`
-- Validation logic built-in
-
----
-
-### 4. **Validated Badge System** âœ…
-**Badge RT/RW/Lurah/Camat dibatasi sesuai data REAL Surabaya**
-
-#### Badge Types:
-
-**A. Position Badges (Limited by Real Data)**
-```
-ðŸ˜ï¸ Ketua RT (12 RT per RW Ã— 5 RW Ã— 154 Kelurahan)
-   â””â”€â”€ Max: 1 assignment per RT (HANYA 1 ORANG)
-   â””â”€â”€ Requires: NIK validation
-   â””â”€â”€ Total: ~9,240 unique RT positions
-
-ðŸ›ï¸ Ketua RW (5 RW per Kelurahan Ã— 154 Kelurahan)
-   â””â”€â”€ Max: 1 assignment per RW (HANYA 1 ORANG)
-   â””â”€â”€ Requires: NIK validation
-   â””â”€â”€ Total: 770 unique RW positions
-
-ðŸ‘” Lurah (1 per Kelurahan Ã— 154 Kelurahan)
-   â””â”€â”€ Max: 1 assignment per Kelurahan
-   â””â”€â”€ Requires: NIK validation
-   â””â”€â”€ Total: 154 Lurah positions
-
-ðŸŽ–ï¸ Camat (1 per Kecamatan Ã— 31 Kecamatan)
-   â””â”€â”€ Max: 1 assignment per Kecamatan
-   â””â”€â”€ Requires: NIK validation
-   â””â”€â”€ Total: 31 Camat positions
+## 10. ARSITEKTUR KONSEPTUAL (VISUAL & LOGICAL)
+```text
++----------------------------------------------------------------+
+| USER & ACTOR LAYER                                              |
+| Relawan / KSH / Moderator Tier 1-3 / Admin (Back-Office) /     |
+| Mitra Eksternal (Non-Login)                                    |
++------------------------------+---------------------------------+
+                               |
++------------------------------v---------------------------------+
+| PRESENTATION LAYER (WEB)                                       |
+| Landing + Informasi Program + Form Mitra + Dashboard Per Peran |
++------------------------------+---------------------------------+
+                               |
++------------------------------v---------------------------------+
+| APPLICATION / SERVICE LAYER                                    |
+| Role Governance, Event Flow, Verifikasi,                        |
+| Pillar-Balance Engine, Reward Logic, Monitoring                |
++------------------------------+---------------------------------+
+                               |
++------------------------------v---------------------------------+
+| DATA LAYER                                                      |
+| Data Pengguna, Kegiatan, Laporan, XP Kampung,                  |
+| Leaderboard Kampung, Kolaborasi Mitra, Histori Review          |
++----------------------------------------------------------------+
 ```
 
-**B. Kader Badges (Flexible, Multiple per Area)**
-```
-ðŸŒ¿ Kader Lingkungan (Unlimited)
-ðŸ¤ Kader Gotong Royong (Unlimited)
-ðŸ’¼ Kader Ekonomi Kreatif (Unlimited)
-ðŸ›¡ï¸ Kader Keamanan (Unlimited)
-```
-
-**C. Achievement Badges (Unlimited)**
-```
-ðŸš€ Pioneer - Early adopter SIMRP
-ðŸ† Champion - Event champion
-ðŸŽ“ Mentor - Mentor relawan baru
-```
-
-#### Badge Validation Logic:
-```typescript
-// Check if badge can be assigned
-const validation = canAssignBadge(badgeId, currentAssignments);
-if (!validation.canAssign) {
-  toast.error(validation.reason);
-  // Example: "Badge Ketua RT 001/RW 01 sudah mencapai batas maksimal (1)"
-}
-```
-
-**Anti-Fraud Protection:**
-- âŒ Tidak bisa assign 2 Ketua RT untuk RT yang sama
-- âŒ Sistem auto-count berapa badge sudah ter-assign
-- âŒ Badge position hanya bisa di-assign ke user di area yang sesuai
-- âœ… Kader & achievement badges unlimited (untuk flexibility)
-
-**Implementation:**
-- Validation system: `/src/data/validatedBadges.ts`
-- Geographic data integration
-- Real-time assignment counting
-
----
-
-### 5. **Complete Geographic Data - AKURAT 100%** âœ…
-**SEMUA kode pos Surabaya + validasi super ketat**
-
-#### Coverage:
-```
-31 Kecamatan
-154 Kelurahan
-200+ Kode Pos Unique
-
-Validasi Rules:
-â”œâ”€â”€ Format: Harus 5 digit angka
-â”œâ”€â”€ Prefix: Harus dimulai dengan "60" (Surabaya)
-â”œâ”€â”€ Lookup: Match ke database kelurahan
-â””â”€â”€ Auto-fill: Kecamatan & Kelurahan otomatis terisi
-```
-
-#### Geographic Zones:
-```
-SURABAYA PUSAT:
-â”œâ”€â”€ Tegalsari (5 kelurahan)
-â”œâ”€â”€ Genteng (5 kelurahan)
-â”œâ”€â”€ Bubutan (5 kelurahan)
-â”œâ”€â”€ Simokerto (5 kelurahan)
-â””â”€â”€ Pabean Cantian (5 kelurahan)
-
-SURABAYA TIMUR:
-â”œâ”€â”€ Gubeng (6 kelurahan)
-â”œâ”€â”€ Rungkut (6 kelurahan)
-â”œâ”€â”€ Tenggilis Mejoyo (4 kelurahan)
-â”œâ”€â”€ Gunung Anyar (3 kelurahan)
-â”œâ”€â”€ Sukolilo (7 kelurahan)
-â””â”€â”€ Mulyorejo (6 kelurahan)
-
-SURABAYA BARAT:
-â”œâ”€â”€ Sawahan (6 kelurahan)
-â”œâ”€â”€ Krembangan (5 kelurahan)
-â”œâ”€â”€ Asemrowo (4 kelurahan)
-â”œâ”€â”€ Benowo (4 kelurahan)
-â”œâ”€â”€ Pakal (4 kelurahan)
-â”œâ”€â”€ Lakarsantri (6 kelurahan)
-â”œâ”€â”€ Sambikerep (4 kelurahan)
-â”œâ”€â”€ Tandes (6 kelurahan)
-â””â”€â”€ Sukomanunggal (6 kelurahan)
-
-SURABAYA UTARA:
-â”œâ”€â”€ Bulak (4 kelurahan)
-â”œâ”€â”€ Kenjeran (4 kelurahan)
-â””â”€â”€ Semampir (5 kelurahan)
-
-SURABAYA SELATAN:
-â”œâ”€â”€ Wonokromo (6 kelurahan)
-â”œâ”€â”€ Wonocolo (5 kelurahan)
-â”œâ”€â”€ Wiyung (4 kelurahan)
-â”œâ”€â”€ Karang Pilang (4 kelurahan)
-â”œâ”€â”€ Jambangan (4 kelurahan)
-â”œâ”€â”€ Gayungan (4 kelurahan)
-â”œâ”€â”€ Dukuh Pakis (4 kelurahan)
-â””â”€â”€ Tambaksari (7 kelurahan)
-```
-
-**Implementation:**
-- Data file: `/src/data/geographicData.ts`
-- Helper functions: `findByKodepos()`, `isValidSurabayaPostalCode()`
-- Used in registration auto-fill
-
----
-
-### 6. **4-Pillar Gamification System** âœ…
-**Berdasarkan 4 Pilar Kampung Pancasila**
-
-#### Pillars:
-```
-ðŸŒ¿ PILAR 1: LINGKUNGAN
-   â””â”€â”€ Aktivitas: Kebersihan, penghijauan, pengelolaan sampah
-   â””â”€â”€ Color: Green (#10B981)
-
-ðŸ¤ PILAR 2: GOTONG ROYONG
-   â””â”€â”€ Aktivitas: Kerja bakti, kegiatan sosial, mutual aid
-   â””â”€â”€ Color: Blue (#3B82F6)
-
-ðŸ’¼ PILAR 3: EKONOMI KREATIF
-   â””â”€â”€ Aktivitas: UMKM, pasar lokal, pelatihan wirausaha
-   â””â”€â”€ Color: Orange (#F59E0B)
-
-ðŸ›¡ï¸ PILAR 4: KEAMANAN
-   â””â”€â”€ Aktivitas: Siskamling, ronda, pelaporan keamanan
-   â””â”€â”€ Color: Red (#EF4444)
-```
-
-#### Pillar-Balance Engine:
-**Auto-adjust point multipliers untuk balance aktivitas**
-
-```
-If (Pilar Lingkungan < 20% total aktivitas) {
-  Multiplier Lingkungan = 1.5x
-}
-
-If (Pilar terlalu dominan > 40%) {
-  Multiplier turun ke 0.8x
-}
-
-Goal: Mendorong distribusi merata di semua pilar
-```
-
-**Implementation:**
-- Point calculation di backend
-- Visual charts di Admin Dashboard
-- Per-pillar statistics
-
----
-
-### 7. **Offline-First Reporting dengan GPS Lock** âœ…
-
-#### Reporting Wizard Features:
-```
-STEP 1: Select Event (Optional)
-â”œâ”€â”€ List event tersedia
-â””â”€â”€ Atau skip untuk aktivitas mandiri
-
-STEP 2: Pilih Pilar
-â”œâ”€â”€ 4 pillar cards dengan icon & warna
-â””â”€â”€ Required field
-
-STEP 3: Jumlah Peserta
-â”œâ”€â”€ Input number
-â””â”€â”€ Validation: Min 1 orang
-
-STEP 4: GPS-Locked Photo
-â”œâ”€â”€ Camera capture (akses device camera)
-â”œâ”€â”€ Auto-attach GPS coordinates
-â”œâ”€â”€ Accuracy indicator
-â””â”€â”€ Validation: Photo required
-
-STEP 5: Outcome Tags (Impact)
-â”œâ”€â”€ âœ… Masalah Teratasi
-â”œâ”€â”€ âš ï¸ Butuh Tindak Lanjut
-â”œâ”€â”€ ðŸ’° Transaksi Ekonomi
-â””â”€â”€ ðŸ“ˆ Partisipasi Meningkat
-
-STEP 6: Review & Submit
-â”œâ”€â”€ Preview semua data
-â””â”€â”€ Submit with offline detection
-```
-
-#### Offline Mode:
-âœ… Detect online/offline status  
-âœ… Queue reports locally if offline  
-âœ… Auto-sync when back online  
-âœ… Visual indicator "Dikirim dari Mode Offline"
-
-**Implementation:**
-- Component: `/src/app/components/ReportingWizard.tsx`
-- GPS coordinates attached to photo metadata
-- Backend verification checks GPS data
-
----
-
-### 8. **Event Management System** âœ…
-
-#### Event Lifecycle:
-```
-CREATE â†’ UPCOMING â†’ ONGOING â†’ COMPLETED/CANCELLED
-
-Admin/Moderator can:
-â”œâ”€â”€ Create event
-â”œâ”€â”€ Set pillar, date, location, points
-â”œâ”€â”€ Set max participants
-â”œâ”€â”€ Approve/reject join requests
-â””â”€â”€ Mark as completed
-```
-
-#### Event Points:
-- Base points: 10-100 poin (set by admin)
-- Bonus points berdasarkan:
-  - Level multiplier user
-  - Pillar balance multiplier
-  - Attendance verification
-
-**Implementation:**
-- Event list component
-- Join/leave functionality
-- Points awarded on completion
-
----
-
-### 9. **Authentication System** âœ…
-
-#### Two-Tier Auth:
-```
-ADMIN/MODERATOR:
-â””â”€â”€ Traditional login (username + password)
-    â””â”€â”€ Stored in Supabase KV Store
-    â””â”€â”€ BCrypt password hashing
-
-USER:
-â””â”€â”€ Internet Identity (untuk future)
-    â””â”€â”€ Currently: Email + password
-    â””â”€â”€ Auto-assign "user" role
-```
-
-#### Session Management:
-- JWT token stored in localStorage
-- Auto-refresh on page reload
-- Logout clears all session data
-- Role-based route protection
-
-**Implementation:**
-- Login: `/src/app/components/LoginPage.tsx`
-- Register: `/src/app/components/RegisterPage.tsx`
-- Backend auth: `/supabase/functions/server/index.tsx`
-
----
-
-### 10. **Responsive Mobile-First PWA Design** âœ…
-
-#### Design System:
-```
-PRIMARY COLOR: #0B6E4F (Hijau Pancasila)
-ACCENT COLOR: #FDB913 (Kuning Emas)
-BACKGROUND: #F9FAFB (Gray-50)
-
-Font Stack:
-â””â”€â”€ System fonts (optimal performance)
-
-Spacing System:
-â””â”€â”€ Tailwind default scale (4px base)
-```
-
-#### Mobile Optimization:
-âœ… Bottom navigation (thumb-friendly)  
-âœ… Large touch targets (min 44px)  
-âœ… Swipeable cards  
-âœ… Modal wizards untuk complex forms  
-âœ… Loading states & skeleton screens  
-
-#### Responsive Breakpoints:
-```
-mobile:   0-640px   (default)
-tablet:   641-1024px
-desktop:  1025px+
-```
-
-**Implementation:**
-- Tailwind CSS v4
-- Mobile-first utilities
-- Touch-optimized components
-
----
-
-## ðŸ“ PROJECT STRUCTURE
-
-```
-simrp/
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”œâ”€â”€ App.tsx                 # Main app with routing
-â”‚   â”‚   â””â”€â”€ components/
-â”‚   â”‚       â”œâ”€â”€ AdminDashboard.tsx       # Admin view (with God Mode)
-â”‚   â”‚       â”œâ”€â”€ AdminGodMode.tsx         # God Mode controls
-â”‚   â”‚       â”œâ”€â”€ ModeratorDashboard.tsx   # Moderator view
-â”‚   â”‚       â”œâ”€â”€ UserDashboard.tsx        # User view
-â”‚   â”‚       â”œâ”€â”€ POVSwitcher.tsx          # Discord-style view switcher
-â”‚   â”‚       â”œâ”€â”€ LevelProgressionCard.tsx # UX-driven level visual
-â”‚   â”‚       â”œâ”€â”€ LandingPage.tsx          # Public landing
-â”‚   â”‚       â”œâ”€â”€ LoginPage.tsx            # Auth login
-â”‚   â”‚       â”œâ”€â”€ RegisterPage.tsx         # Registration with auto-fill
-â”‚   â”‚       â”œâ”€â”€ EventList.tsx            # Event listing
-â”‚   â”‚       â”œâ”€â”€ ReportingWizard.tsx      # Offline-first reporting
-â”‚   â”‚       â”œâ”€â”€ UserProfile.tsx          # Profile view
-â”‚   â”‚       â”œâ”€â”€ SeedData.tsx             # Database seeder
-â”‚   â”‚       â””â”€â”€ ui/                      # Shadcn components
-â”‚   â”œâ”€â”€ data/
-â”‚   â”‚   â”œâ”€â”€ geographicData.ts        # Complete Surabaya data
-â”‚   â”‚   â”œâ”€â”€ levelingSystem.ts        # Multi-tier levels
-â”‚   â”‚   â””â”€â”€ validatedBadges.ts       # Badge validation system
-â”‚   â”œâ”€â”€ types/
-â”‚   â”‚   â””â”€â”€ index.ts                 # TypeScript types
-â”‚   â””â”€â”€ styles/
-â”‚       â”œâ”€â”€ theme.css                # CSS variables
-â”‚       â””â”€â”€ fonts.css                # Font imports
-â”œâ”€â”€ supabase/
-â”‚   â””â”€â”€ functions/
-â”‚       â””â”€â”€ server/
-â”‚           â”œâ”€â”€ index.tsx            # Main Deno server
-â”‚           â””â”€â”€ kv_store.tsx         # KV utilities (protected)
-â”œâ”€â”€ utils/
-â”‚   â””â”€â”€ supabase/
-â”‚       â””â”€â”€ info.tsx                 # Supabase config (protected)
-â””â”€â”€ docs/architecture/GRAND_DESIGN_FINAL.md # This document
-```
-
----
-
-## ðŸ” SECURITY & ANTI-FRAUD MEASURES
-
-### 1. **Temporary Adjustments (24h Expiry)**
-âœ… Prevent admin abuse  
-âœ… Auto-cleanup expired adjustments  
-âœ… Audit trail with reason + timestamp  
-
-### 2. **Badge Validation**
-âœ… Max assignments per badge  
-âœ… Area-based validation (RT/RW/Lurah/Camat)  
-âœ… NIK requirement for position badges  
-
-### 3. **GPS-Locked Reports**
-âœ… Photo must have GPS coordinates  
-âœ… Accuracy indicator  
-âœ… Tampering detection  
-
-### 4. **Role-Based Access Control (RBAC)**
-âœ… Admin â†’ Full access  
-âœ… Moderator â†’ Limited to verification  
-âœ… User â†’ Read + create only  
-
-### 5. **Point Multiplier Limits**
-âœ… Max multiplier 3.0x (admin level 3)  
-âœ… Balanced across pillars  
-âœ… Anti-gaming mechanisms  
-
----
-
-## ðŸš€ DEPLOYMENT CHECKLIST
-
-### Pre-Deployment:
-- [x] All features implemented
-- [x] No TypeScript errors
-- [x] Responsive design tested
-- [x] Security measures in place
-- [x] Anti-fraud system active
-- [x] Geographic data validated
-- [x] Badge system limits working
-- [x] Temporary adjustments expiring correctly
-
-### Environment Variables:
-```
-SUPABASE_URL=<your-supabase-url>
-SUPABASE_ANON_KEY=<your-anon-key>
-SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
-```
-
-### Database Setup:
-1. Supabase KV Store table: `kv_store_32aa5c5c`
-2. Seed data via `SeedData` component
-3. Default admin account:
-   - Username: `admin`
-   - Password: `admin`
-   - **CHANGE IMMEDIATELY IN PRODUCTION**
-
-### Post-Deployment:
-- [ ] Change default admin password
-- [ ] Configure social auth (optional)
-- [ ] Set up backup schedule
-- [ ] Monitor temporary adjustments expiry
-- [ ] Audit logs review
-
----
-
-## ðŸ“Š KEY METRICS TO TRACK
-
-### User Engagement:
-- Total active users
-- Daily/weekly active users
-- Average points per user
-- Level distribution
-
-### Activity Metrics:
-- Events created vs completed
-- Reports submitted vs verified
-- Per-pillar activity distribution
-- Geographic distribution
-
-### Admin Actions:
-- Role assignments (moderator promoted)
-- Temporary adjustments issued
-- Temporary adjustments expired
-- Badge assignments
-
-### System Health:
-- API response times
-- Error rates
-- Offline sync success rate
-- User retention rate
-
----
-
-## ðŸŽ“ USER GUIDE
-
-### For Users (Relawan):
-1. **Register** dengan NIK & kode pos
-2. **Auto-fill** kecamatan & kelurahan
-3. **Join events** untuk dapat poin
-4. **Submit reports** dengan foto GPS-locked
-5. **Level up** dan dapat badge
-6. **Compete** di leaderboard
-
-### For Moderators:
-1. **Verify reports** dengan foto & GPS evidence
-2. **Approve/reject** berdasarkan kualitas
-3. **Create events** untuk komunitas
-4. **Earn moderator points** dari aktivitas verifikasi
-5. **Switch view** untuk lihat user experience
-
-### For Admins:
-1. **Monitor** semua aktivitas via dashboard
-2. **Assign moderator roles** ke user terpercaya
-3. **Use God Mode** untuk temporary adjustments
-4. **All adjustments expire** dalam 24 jam
-5. **Switch views** untuk understand all perspectives
-6. **Audit logs** untuk transparency
-
----
-
-## ðŸ”¥ HIGHLIGHTS & INNOVATIONS
-
-### 1. **Discord-Inspired Role System**
-Pertama kali di Indonesia: Role management system seperti Discord untuk aplikasi pemerintahan!
-
-### 2. **24-Hour Temporary Adjustments**
-Anti-fraud innovation: Semua manual adjustment expire otomatis!
-
-### 3. **Validated Badge System**
-Badge RT/RW limited by REAL geographic data - prevent fake positions!
-
-### 4. **UX-Driven Level Visual**
-Current = cerah, completed = hijau, locked = abu-abu - instantly understandable!
-
-### 5. **Multi-Tier Leveling**
-Setiap role punya level system sendiri - motivasi untuk semua!
-
-### 6. **POV Switcher Always Visible**
-Admin/Moderator bisa switch view kapan saja - transparency & empathy!
-
-### 7. **Pillar-Balance Engine**
-Auto-adjust multipliers untuk balance aktivitas - smart gamification!
-
-### 8. **Offline-First with GPS Lock**
-Works without internet, photo must have GPS - perfect for field work!
-
----
-
-## ðŸ“ž SUPPORT & MAINTENANCE
-
-### Bug Reporting:
-Submit via admin dashboard "God Mode" tab
-
-### Feature Requests:
-Contact Diskominfo Surabaya
-
-### Technical Support:
-- Email: support@simrp.surabaya.go.id (example)
-- Hours: 08:00 - 17:00 WIB
-
-### Maintenance Windows:
-- Weekly: Sunday 01:00 - 03:00 WIB
-- Emergency: As needed with notification
-
----
-
-## ðŸ† SUCCESS METRICS (TARGET)
-
-### Phase 1 (Month 1-3):
-- 1,000+ registered users
-- 100+ active events
-- 500+ verified reports
-- 50+ moderators assigned
-
-### Phase 2 (Month 4-6):
-- 5,000+ registered users
-- All 31 kecamatan covered
-- 2,000+ verified reports
-- Balanced pillar distribution
-
-### Phase 3 (Month 7-12):
-- 10,000+ registered users
-- 10,000+ verified reports
-- Self-sustaining community
-- Integration with ASW system
-
----
-
-## ðŸŽ‰ FINAL WORDS
-
-**SIMRP adalah sistem manajemen relawan TERLENGKAP dan TERCANGGIH** yang pernah dibuat untuk pemerintahan Indonesia. Dengan:
-
-âœ… **Discord-style role management**  
-âœ… **Anti-fraud system (24h temporary adjustments)**  
-âœ… **Validated badge system (real geographic data)**  
-âœ… **Multi-tier leveling (7 user, 5 moderator, 3 admin)**  
-âœ… **UX-driven level visual**  
-âœ… **POV switcher (empathy-driven)**  
-âœ… **Complete Surabaya geographic data**  
-âœ… **Offline-first GPS-locked reporting**  
-âœ… **4-pillar gamification with auto-balance**  
-âœ… **Mobile-first PWA design**  
-
-**STATUS: PRODUCTION READY ðŸš€**
-
----
-
-**Developed with â¤ï¸ for Diskominfo Kota Surabaya**  
-**Â© 2025 Pemerintah Kota Surabaya. All Rights Reserved.**
-
----
-
-## ðŸ”„ CHANGELOG
-
-### v1.0.0 FINAL (26 Jan 2025)
-- âœ… Complete implementation of all features
-- âœ… Discord-style POV switcher
-- âœ… Multi-tier leveling system (user: 7, mod: 5, admin: 3)
-- âœ… Anti-fraud temporary adjustments (24h expiry)
-- âœ… Validated badge system dengan geographic limits
-- âœ… UX-driven level progression visual
-- âœ… Complete Surabaya geographic data (31 kec, 154 kel, 200+ kodepos)
-- âœ… Admin God Mode with role management
-- âœ… Offline-first reporting with GPS lock
-- âœ… Production-ready dengan semua security measures
-- âœ… GRAND DESIGN documentation
-
-**APLIKASI SIAP UNTUK DEMO DAN DEPLOYMENT! ðŸŽ¯**
-
+## 11. NILAI MANFAAT PER PEMANGKU KEPENTINGAN
+- **Relawan**: kontribusi terdata, dapat sertifikat, dapat poin apresiasi.
+- **KSH**: operasional kegiatan lebih tertata dan terdokumentasi.
+- **ASN Pendamping**: inisiasi program lebih terarah per kampung binaan.
+- **Kelurahan/Kecamatan**: verifikasi dan pengendalian mutu data lebih jelas.
+- **OPD**: insight agregat per pilar sebagai basis kebijakan.
+- **Mitra**: kanal kontribusi formal, transparan, dan terukur.
+
+## 12. PENEGASAN PROPOSAL
+SIMREKAP adalah proposal sistem operasional untuk menguatkan Kampung Pancasila agar:
+- pembangunan empat pilar lebih seimbang,
+- peran lintas aktor lebih tegas dan konsisten,
+- kontribusi relawan, KSH, moderator, dan mitra terkonversi menjadi data kebijakan yang kredibel.
+
+Dokumen ini menjadi baseline resmi untuk komunikasi pitch, demonstrasi sistem, dan pengembangan tahap berikutnya.
+
+## 13. RUJUKAN KONSEP PROGRAM (RINGKAS)
+Rujukan konteks Kampung Pancasila Surabaya yang dipakai dalam framing dokumen ini:
+- Pemkot Surabaya - pembentukan Satgas Kampung Pancasila dan 4 bidang utama: https://www.surabaya.go.id/id/berita/87338/wali-kota-eri-cahyadi-pastikan-pembentukan-satgas-kampung-pancasila-tuntas-agustus-2025
+- Pemkot Surabaya - penjelasan makna Kampung Pancasila dan fokus 4 pilar per RW: https://www.surabaya.go.id/id/berita/87676/wali-kota-eri-cahyadi-kampung-pancasila-adalah-fondasi-kekuatan-kota-surabaya
+- Pemkot Surabaya - penguatan SOP, pelibatan ASN pendamping, dan pendekatan kampung sebagai fondasi kota: https://www.surabaya.go.id/id/berita/86803/pastikan-program-kampung-pancasila-jalan-konsisten-pemkot-surabaya-aktifkan-forum-4-pilar
+- ANTARA Jatim - ringkasan penguatan implementasi Kampung Pancasila tingkat kota: https://www.antaranews.com/berita/4944573/wali-kota-surabaya-bentuk-satgas-kampung-pancasila-inisiatif-tingkat-rw
 

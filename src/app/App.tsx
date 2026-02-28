@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { LandingPage } from '@/app/components/LandingPage';
 import { LoginPage } from '@/app/components/LoginPage';
 import { RegisterPage } from '@/app/components/RegisterPage';
@@ -6,9 +6,12 @@ import { UserDashboard } from '@/app/components/UserDashboard';
 import { AdminDashboard } from '@/app/components/AdminDashboard';
 import { ModeratorDashboard } from '@/app/components/ModeratorDashboard';
 import { AdminLoginPage } from '@/app/components/AdminLoginPage';
+import { CollaborationPage } from '@/app/components/CollaborationPage';
+import { AboutPage } from '@/app/components/AboutPage';
+import { FaqPage } from '@/app/components/FaqPage';
 import { Toaster } from 'sonner';
 
-type Page = 'landing' | 'login' | 'register' | 'admin-login' | 'dashboard';
+type Page = 'landing' | 'login' | 'register' | 'collaboration' | 'about' | 'faq' | 'admin-login' | 'dashboard';
 
 interface User {
   id?: string;
@@ -93,6 +96,18 @@ export default function App() {
         setCurrentPage('register');
         return;
       }
+      if (path === '/kolaborasi' || path === '/collaboration') {
+        setCurrentPage('collaboration');
+        return;
+      }
+      if (path === '/about') {
+        setCurrentPage('about');
+        return;
+      }
+      if (path === '/faq') {
+        setCurrentPage('faq');
+        return;
+      }
       if (path === '/app') {
         if (currentUser) {
           setCurrentPage('dashboard');
@@ -152,6 +167,12 @@ export default function App() {
       window.history.pushState({}, '', '/login');
     } else if (page === 'register') {
       window.history.pushState({}, '', '/register');
+    } else if (page === 'collaboration') {
+      window.history.pushState({}, '', '/kolaborasi');
+    } else if (page === 'about') {
+      window.history.pushState({}, '', '/about');
+    } else if (page === 'faq') {
+      window.history.pushState({}, '', '/faq');
     } else if (page === 'landing') {
       window.history.pushState({}, '', '/');
     }
@@ -169,6 +190,10 @@ export default function App() {
     localStorage.setItem('simrp_moderator_tier', String(tier));
   };
 
+  const withTransition = (node: ReactNode) => (
+    <div className="page-enter">{node}</div>
+  );
+
   if (loading) {
     return (
       <div className="size-full flex items-center justify-center bg-white">
@@ -185,28 +210,40 @@ export default function App() {
       <Toaster position="top-center" richColors />
       
       {currentPage === 'landing' && (
-        <LandingPage onNavigate={navigateTo} />
+        withTransition(<LandingPage onNavigate={navigateTo} />)
       )}
       
       {currentPage === 'login' && (
-        <LoginPage 
+        withTransition(<LoginPage 
           onNavigate={navigateTo} 
           onLogin={handleLogin}
-        />
+        />)
       )}
 
       {currentPage === 'admin-login' && (
-        <AdminLoginPage
+        withTransition(<AdminLoginPage
           onNavigate={navigateTo}
           onLogin={handleLogin}
-        />
+        />)
       )}
       
       {currentPage === 'register' && (
-        <RegisterPage 
+        withTransition(<RegisterPage 
           onNavigate={navigateTo}
           onRegister={handleLogin}
-        />
+        />)
+      )}
+
+      {currentPage === 'collaboration' && (
+        withTransition(<CollaborationPage onNavigate={navigateTo} />)
+      )}
+
+      {currentPage === 'about' && (
+        withTransition(<AboutPage onNavigate={navigateTo} />)
+      )}
+
+      {currentPage === 'faq' && (
+        withTransition(<FaqPage onNavigate={navigateTo} />)
       )}
       
       {currentPage === 'dashboard' && currentUser && (

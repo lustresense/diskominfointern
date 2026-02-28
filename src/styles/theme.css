@@ -179,3 +179,40 @@
     line-height: 1.5;
   }
 }
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cta_panel_in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cta-panel-enter {
+  animation: cta_panel_in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+  .cta-panel-enter {
+    animation: none;
+  }
+}
