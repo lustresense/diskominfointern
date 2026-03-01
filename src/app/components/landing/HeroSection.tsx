@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
 
 interface HeroSectionProps {
   onExplore: () => void;
+  totalKelurahan: number;
+  totalKodepos: number;
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-export function HeroSection({ onExplore }: HeroSectionProps) {
+export function HeroSection({ onExplore, totalKelurahan, totalKodepos }: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [progress, setProgress] = useState(0);
 
@@ -75,28 +76,24 @@ export function HeroSection({ onExplore }: HeroSectionProps) {
                   dan Kemasyarakatan.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-2 text-sm">
-                  <span className="rounded-full border border-white/30 bg-white/12 px-4 py-1.5">153 Kelurahan</span>
-                  <span className="rounded-full border border-white/30 bg-white/12 px-4 py-1.5">1.360 RW</span>
+                  <span className="rounded-full border border-white/30 bg-white/12 px-4 py-1.5">{totalKelurahan} Kelurahan</span>
+                  <span className="rounded-full border border-white/30 bg-white/12 px-4 py-1.5">{totalKodepos} Kode Pos</span>
                   <span className="rounded-full border border-white/30 bg-white/12 px-4 py-1.5">Kampung-Centric</span>
                 </div>
-                <Button
+
+                <button
                   type="button"
                   onClick={onExplore}
-                  className="mt-9 h-12 rounded-full bg-[#FFC107] px-8 text-base font-semibold text-[#1a1a1a] transition hover:bg-[#ffd347]"
+                  className="group mt-8 inline-flex items-center gap-2 text-sm font-semibold text-white/92 transition hover:text-[#ffd347]"
                 >
-                  Jelajahi Program
-                </Button>
+                  Scroll ke bawah
+                  <span className="grid h-8 w-8 place-items-center rounded-full border border-white/35 bg-white/10">
+                    <ChevronDown className="h-4 w-4 scroll-nudge transition-transform duration-300 group-hover:translate-y-0.5" />
+                  </span>
+                </button>
               </div>
             </div>
           </div>
-        </div>
-
-        <div
-          className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 text-center text-white transition-opacity duration-300"
-          style={{ opacity: progress > 0.78 ? 0 : 1 }}
-        >
-          <p className="text-xs font-medium tracking-[0.14em] uppercase text-white/82">Scroll</p>
-          <ChevronDown className="mx-auto mt-1 h-5 w-5 animate-bounce text-white/86" />
         </div>
       </div>
     </section>

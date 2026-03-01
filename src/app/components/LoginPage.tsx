@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { ArrowLeft, AlertCircle, Loader2, Info } from 'lucide-react';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiPublicPost } from '@/lib/api';
 
 interface LoginPageProps {
   onNavigate: (page: 'landing' | 'register') => void;
@@ -21,25 +21,20 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const switchTab = (tab: string) => {
+    setActiveTab(tab);
+    setEmail('');
+    setPassword('');
+    setError('');
+  };
+
   const handleAuthLogin = async (e: React.FormEvent, expectedRole: 'user' | 'moderator') => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Email atau password salah');
-      }
+      const data = await apiPublicPost('/auth/login', { email, password });
 
       if (data.user?.role && data.user.role !== expectedRole) {
         throw new Error(expectedRole === 'moderator' ? 'Akun ini bukan moderator' : 'Akun ini bukan relawan');
@@ -80,7 +75,7 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
           </div>
 
           <Card className="border-gray-200 shadow-xl rounded-2xl overflow-hidden">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={switchTab}>
               <div className="bg-gray-50 border-b border-gray-100 p-1">
                 <TabsList className="grid w-full grid-cols-2 bg-transparent h-12">
                   <TabsTrigger

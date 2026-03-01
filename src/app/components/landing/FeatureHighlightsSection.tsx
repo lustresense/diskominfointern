@@ -27,7 +27,7 @@ export function FeatureHighlightsSection() {
   return (
     <section className="mx-auto max-w-5xl px-4 py-20 md:py-28">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0f5f3f]/70">Fitur Utama</p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#14201a] md:text-4xl">Fitur Inti SIMRP</h2>
+      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#14201a] md:text-4xl">Fitur Inti SIMREKAP</h2>
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#516057]">
         Tampilan dibuat tetap bersih, tapi fitur pentingnya langsung kebaca.
       </p>

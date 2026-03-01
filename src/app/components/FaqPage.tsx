@@ -6,8 +6,8 @@ interface FaqPageProps {
 
 const FAQ_ITEMS = [
   {
-    q: "Apa itu SIMRP?",
-    a: "SIMRP adalah sistem informasi untuk mencatat, memverifikasi, dan memonitor kontribusi kegiatan Kampung Pancasila berbasis data.",
+    q: "Apa itu SIMREKAP?",
+    a: "SIMREKAP adalah sistem informasi untuk mencatat, memverifikasi, dan memonitor kontribusi kegiatan Kampung Pancasila berbasis data.",
   },
   {
     q: "Siapa yang bisa jadi relawan?",
@@ -23,7 +23,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Apakah ada leaderboard individu?",
-    a: "Tidak. Fokus SIMRP adalah progres kampung per kelurahan agar kolaborasi tetap sehat dan tidak kompetitif antar relawan.",
+    a: "Tidak. Fokus SIMREKAP adalah progres kampung per kelurahan agar kolaborasi tetap sehat dan tidak kompetitif antar relawan.",
   },
 ];
 
@@ -41,7 +41,7 @@ export function FaqPage({ onNavigate }: FaqPageProps) {
         </button>
 
         <section className="rounded-3xl border border-[#d5e0d9] bg-white p-6 md:p-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-[#15231c] md:text-4xl">FAQ SIMRP</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#15231c] md:text-4xl">FAQ SIMREKAP</h1>
           <p className="mt-3 text-sm text-[#506158] md:text-base">
             Pertanyaan yang paling sering ditanyakan terkait relawan, verifikasi kegiatan, dan kolaborasi mitra.
           </p>

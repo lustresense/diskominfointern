@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { 
-  Crown, 
   Users, 
   Shield, 
   Zap, 
@@ -20,13 +19,11 @@ import {
   UserCheck,
   UserMinus,
   Plus,
-  Minus,
-  X
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
-import { getAvailableBadgesForArea, canAssignBadge } from '@/data/validatedBadges';
-import { getAllLevelsByRole } from '@/data/levelingSystem';
+import { apiGet, apiPost } from '@/lib/api';
+import { getAvailableBadgesForArea } from '@/data/validatedBadges';
 
 interface AdminGodModeProps {
   adminUser: any;
@@ -53,8 +50,6 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
   const [pointsToAdd, setPointsToAdd] = useState('');
   const [reason, setReason] = useState('');
   const [selectedBadgeId, setSelectedBadgeId] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
-  const [adjustmentType, setAdjustmentType] = useState<'add' | 'set'>('add');
 
   useEffect(() => {
     fetchUsers();
@@ -64,21 +59,10 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/users`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
+      const data = await apiGet<any>('/users', authToken);
+      setUsers(data.users || []);
+    } catch {
+      toast.error('Gagal memuat daftar pengguna');
     } finally {
       setLoading(false);
     }
@@ -86,21 +70,10 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
 
   const fetchTemporaryAdjustments = async () => {
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/admin/temporary-adjustments`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setTemporaryAdjustments(data.adjustments || []);
-      }
-    } catch (error) {
-      console.error('Error fetching adjustments:', error);
+      const data = await apiGet<any>('/admin/temporary-adjustments', authToken);
+      setTemporaryAdjustments(data.adjustments || []);
+    } catch {
+      // Silently ignore — non-critical
     }
   };
 
@@ -108,31 +81,11 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
     if (!confirm('Assign Moderator role? This gives the user verification powers.')) return;
     
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/admin/assign-role`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify({
-            userId,
-            role: 'moderator',
-            reason: 'Assigned by admin'
-          })
-        }
-      );
-      
-      if (response.ok) {
-        toast.success('Moderator role assigned!');
-        fetchUsers();
-      } else {
-        toast.error('Failed to assign role');
-      }
-    } catch (error) {
-      console.error('Error assigning role:', error);
-      toast.error('Error assigning role');
+      await apiPost('/admin/assign-role', { userId, role: 'moderator', reason: 'Assigned by admin' }, authToken);
+      toast.success('Moderator role assigned!');
+      fetchUsers();
+    } catch {
+      toast.error('Failed to assign role');
     }
   };
 
@@ -140,30 +93,11 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
     if (!confirm('Remove Moderator role? User will lose verification powers.')) return;
     
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/admin/remove-role`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify({
-            userId,
-            role: 'moderator'
-          })
-        }
-      );
-      
-      if (response.ok) {
-        toast.success('Moderator role removed!');
-        fetchUsers();
-      } else {
-        toast.error('Failed to remove role');
-      }
-    } catch (error) {
-      console.error('Error removing role:', error);
-      toast.error('Error removing role');
+      await apiPost('/admin/remove-role', { userId, role: 'moderator' }, authToken);
+      toast.success('Moderator role removed!');
+      fetchUsers();
+    } catch {
+      toast.error('Failed to remove role');
     }
   };
 
@@ -180,34 +114,14 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
     }
     
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/admin/add-temporary-points`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify({
-            userId: selectedUser.id,
-            points,
-            reason
-          })
-        }
-      );
-      
-      if (response.ok) {
-        toast.success(`+${points} points added (expires in 24h)`);
-        setPointsToAdd('');
-        setReason('');
-        fetchUsers();
-        fetchTemporaryAdjustments();
-      } else {
-        toast.error('Failed to add points');
-      }
-    } catch (error) {
-      console.error('Error adding points:', error);
-      toast.error('Error adding points');
+      await apiPost('/admin/add-temporary-points', { userId: selectedUser.id, points, reason }, authToken);
+      toast.success(`+${points} points added (expires in 24h)`);
+      setPointsToAdd('');
+      setReason('');
+      fetchUsers();
+      fetchTemporaryAdjustments();
+    } catch {
+      toast.error('Failed to add points');
     }
   };
 
@@ -218,35 +132,14 @@ export function AdminGodMode({ adminUser, authToken }: AdminGodModeProps) {
     }
     
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/admin/add-temporary-badge`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify({
-            userId: selectedUser.id,
-            badgeId: selectedBadgeId,
-            reason
-          })
-        }
-      );
-      
-      if (response.ok) {
-        toast.success('Badge added (expires in 24h)');
-        setSelectedBadgeId('');
-        setReason('');
-        fetchUsers();
-        fetchTemporaryAdjustments();
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to add badge');
-      }
-    } catch (error) {
-      console.error('Error adding badge:', error);
-      toast.error('Error adding badge');
+      await apiPost('/admin/add-temporary-badge', { userId: selectedUser.id, badgeId: selectedBadgeId, reason }, authToken);
+      toast.success('Badge added (expires in 24h)');
+      setSelectedBadgeId('');
+      setReason('');
+      fetchUsers();
+      fetchTemporaryAdjustments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add badge');
     }
   };
 

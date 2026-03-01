@@ -178,6 +178,24 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  button,
+  a,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  select,
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 @keyframes page-enter {
@@ -200,12 +218,25 @@
   }
 }
 
+@keyframes scroll-nudge {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
 .page-enter {
   animation: page-enter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .cta-panel-enter {
   animation: cta_panel_in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scroll-nudge {
+  animation: scroll-nudge 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

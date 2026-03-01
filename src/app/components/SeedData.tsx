@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiBaseUrl } from '/utils/supabase/info';
+import { apiPublicGet } from '@/lib/api';
 
 export function useSeedData() {
   const [seeded, setSeeded] = useState(false);
@@ -7,7 +7,7 @@ export function useSeedData() {
   useEffect(() => {
     const pingHealth = async () => {
       try {
-        await fetch(`${apiBaseUrl}/health`);
+        await apiPublicGet('/health');
       } catch {
         // Local API may not be running yet.
       } finally {

@@ -5,7 +5,7 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, AlertCircle, Loader2, Info } from 'lucide-react';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiPublicPost } from '@/lib/api';
 
 interface AdminLoginPageProps {
   onNavigate: (page: 'landing' | 'login' | 'register' | 'admin-login') => void;
@@ -25,26 +25,10 @@ export function AdminLoginPage({ onNavigate, onLogin }: AdminLoginPageProps) {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/auth/admin-login`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`
-          },
-          body: JSON.stringify({
-            username: adminUsername,
-            password: adminPassword
-          })
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login admin gagal. Pastikan API lokal aktif.');
-      }
+      const data = await apiPublicPost('/auth/admin-login', {
+        username: adminUsername,
+        password: adminPassword,
+      });
 
       if (data.success && data.token) {
         onLogin(data.user, data.token);
@@ -52,7 +36,6 @@ export function AdminLoginPage({ onNavigate, onLogin }: AdminLoginPageProps) {
         setError('Login admin gagal. Periksa username dan password.');
       }
     } catch (err: any) {
-      console.error('Admin login error:', err);
       setError(err.message || 'Terjadi kesalahan saat login admin');
     } finally {
       setLoading(false);

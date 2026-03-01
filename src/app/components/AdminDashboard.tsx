@@ -3,27 +3,25 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Badge } from '@/app/components/ui/badge';
-import { Input } from '@/app/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { 
-  Users, 
-  Calendar, 
-  FileText, 
-  Settings, 
-  LogOut, 
+import {
+  Users,
+  Calendar,
+  FileText,
+  Settings,
+  LogOut,
   TrendingUp,
   Award,
   BarChart3,
   CheckCircle,
   XCircle,
   Clock,
-  Crown
+  Crown,
+  Loader2
 } from 'lucide-react';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiGet, apiPost } from '@/lib/api';
 import { toast } from 'sonner';
 import { POVSwitcher } from '@/app/components/POVSwitcher';
 import { AdminGodMode } from '@/app/components/AdminGodMode';
-import { LevelProgressionCard } from '@/app/components/LevelProgressionCard';
 import { getLevelByRole, getProgressToNextLevel } from '@/data/levelingSystem';
 
 interface AdminDashboardProps {
@@ -58,99 +56,35 @@ export function AdminDashboard({ user, authToken, onLogout, onNavigate, currentV
         fetchEvents(),
         fetchReports()
       ]);
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
+    } catch {
+      toast.error('Gagal memuat data admin');
     } finally {
       setLoading(false);
     }
   };
 
   const fetchUsers = async () => {
-    try {
-      const response = await fetch(
-        `${apiBaseUrl}/users`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
+    const data = await apiGet('/users', authToken);
+    setUsers(data.users || []);
   };
 
   const fetchEvents = async () => {
-    try {
-      const response = await fetch(
-        `${apiBaseUrl}/events`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data.events || []);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    }
+    const data = await apiGet('/events', authToken);
+    setEvents(data.events || []);
   };
 
   const fetchReports = async () => {
-    try {
-      const response = await fetch(
-        `${apiBaseUrl}/reports`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setReports(data.reports || []);
-      }
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-    }
+    const data = await apiGet('/reports', authToken);
+    setReports(data.reports || []);
   };
 
   const handleVerifyReport = async (reportId: string, approved: boolean) => {
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/reports/${reportId}/verify`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify({
-            approved,
-            points: approved ? 50 : 0
-          })
-        }
-      );
-
-      if (response.ok) {
-        toast.success(approved ? 'Laporan disetujui' : 'Laporan ditolak');
-        fetchReports();
-      } else {
-        toast.error('Gagal memverifikasi laporan');
-      }
-    } catch (error) {
-      console.error('Error verifying report:', error);
-      toast.error('Terjadi kesalahan saat memverifikasi');
+      await apiPost(`/reports/${reportId}/verify`, { approved, points: approved ? 50 : 0 }, authToken);
+      toast.success(approved ? 'Laporan disetujui' : 'Laporan ditolak');
+      fetchReports();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memverifikasi laporan');
     }
   };
 
@@ -211,12 +145,12 @@ export function AdminDashboard({ user, authToken, onLogout, onNavigate, currentV
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-6 bg-neutral-900 border border-neutral-800">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">Overview</TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">Pengguna</TabsTrigger>
-            <TabsTrigger value="events" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">Event</TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">Laporan</TabsTrigger>
-            <TabsTrigger value="godmode" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-700 data-[state=active]:to-pink-700">
+          <TabsList className="flex w-full overflow-x-auto mb-6 bg-neutral-900 border border-neutral-800 gap-1 p-1">
+            <TabsTrigger value="overview" className="flex-shrink-0 data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70 text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="users" className="flex-shrink-0 data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70 text-sm">Pengguna</TabsTrigger>
+            <TabsTrigger value="events" className="flex-shrink-0 data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70 text-sm">Event</TabsTrigger>
+            <TabsTrigger value="reports" className="flex-shrink-0 data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70 text-sm">Laporan</TabsTrigger>
+            <TabsTrigger value="godmode" className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-700 data-[state=active]:to-pink-700 text-sm">
               <Crown className="w-4 h-4 mr-1" />
               God Mode
             </TabsTrigger>
@@ -224,6 +158,13 @@ export function AdminDashboard({ user, authToken, onLogout, onNavigate, currentV
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-[#0B6E4F]" />
+                <span className="ml-3 text-gray-400">Memuat data...</span>
+              </div>
+            ) : (
+            <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-neutral-900 text-white border-neutral-800">
@@ -345,6 +286,8 @@ export function AdminDashboard({ user, authToken, onLogout, onNavigate, currentV
                 </div>
               </CardContent>
             </Card>
+            </>
+            )}
           </TabsContent>
 
           {/* Users Tab */}

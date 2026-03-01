@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Calendar, MapPin, Users, Star, Loader2 } from 'lucide-react';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiPost } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface EventListProps {
@@ -39,28 +39,11 @@ export function EventList({ events, authToken, onEventJoined, canJoin = true }: 
     setJoiningEventId(eventId);
     
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/events/${eventId}/join`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        toast.success('Berhasil bergabung dengan event!');
-        onEventJoined();
-      } else {
-        toast.error(data.error || 'Gagal bergabung dengan event');
-      }
-    } catch (error) {
-      console.error('Error joining event:', error);
-      toast.error('Terjadi kesalahan saat bergabung event');
+      await apiPost(`/events/${eventId}/join`, {}, authToken);
+      toast.success('Berhasil bergabung dengan event!');
+      onEventJoined();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal bergabung dengan event');
     } finally {
       setJoiningEventId(null);
     }

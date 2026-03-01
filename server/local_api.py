@@ -109,6 +109,12 @@ def add_common_headers(handler):
   handler.send_header("Referrer-Policy", "no-referrer")
   handler.send_header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
   handler.send_header("Cache-Control", "no-store")
+  if IS_PRODUCTION:
+    handler.send_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+    handler.send_header(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'",
+    )
   origin = resolve_cors_origin(handler)
   if origin:
     handler.send_header("Access-Control-Allow-Origin", origin)
@@ -135,9 +141,14 @@ def rate_limited(handler, bucket, limit, window_seconds):
 def open_sqlite(path):
   conn = sqlite3.connect(str(path), timeout=30)
   conn.row_factory = sqlite3.Row
-  # Use in-memory journaling for demo environments where file journals may be blocked.
-  conn.execute("PRAGMA journal_mode = MEMORY")
-  conn.execute("PRAGMA synchronous = OFF")
+  # Use WAL journaling in production for better concurrency; fallback to MEMORY
+  # for environments where file journals may be blocked.
+  if IS_PRODUCTION:
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+  else:
+    conn.execute("PRAGMA journal_mode = MEMORY")
+    conn.execute("PRAGMA synchronous = NORMAL")
   conn.execute("PRAGMA temp_store = MEMORY")
   conn.execute("PRAGMA foreign_keys = ON")
   return conn
@@ -207,6 +218,24 @@ def parse_geo_data():
   if current and current["kode"] and current["nama"]:
     rows.append(current)
   return rows
+
+
+def get_geo_stats():
+  parsed = parse_geo_data()
+  kecamatan_total = len(parsed)
+  kelurahan_total = sum(len(kec.get("kelurahan", [])) for kec in parsed)
+  postal_codes = {
+    code
+    for kec in parsed
+    for kel in kec.get("kelurahan", [])
+    for code in kel.get("kodepos", [])
+    if isinstance(code, str) and len(code) == 5
+  }
+  return {
+    "kecamatan": kecamatan_total,
+    "kelurahan": kelurahan_total,
+    "kodepos": len(postal_codes),
+  }
 
 
 def write_json(handler, code, payload):
@@ -475,13 +504,18 @@ def init_schema():
       pic_name TEXT NOT NULL,
       email TEXT NOT NULL,
       support_type TEXT NOT NULL CHECK(support_type IN ('dana','konsumsi','peralatan','media_partner','lainnya')),
+      contribution_scope TEXT NOT NULL DEFAULT 'kota' CHECK(contribution_scope IN ('kota','kecamatan','kelurahan')),
+      scope_kecamatan_id INTEGER,
+      scope_kelurahan_id INTEGER,
       support_description TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
       reviewed_by_user_id TEXT,
       reviewed_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id)
+      FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id),
+      FOREIGN KEY (scope_kecamatan_id) REFERENCES kecamatan(id),
+      FOREIGN KEY (scope_kelurahan_id) REFERENCES kelurahan(id)
     )
     """,
   )
@@ -524,6 +558,14 @@ def migrate_schema(conn):
   user_cols = {row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
   if "tier2_badge" not in user_cols:
     execute(conn, "ALTER TABLE users ADD COLUMN tier2_badge TEXT")
+
+  collab_cols = {row["name"] for row in conn.execute("PRAGMA table_info(collaboration_requests)").fetchall()}
+  if "contribution_scope" not in collab_cols:
+    execute(conn, "ALTER TABLE collaboration_requests ADD COLUMN contribution_scope TEXT NOT NULL DEFAULT 'kota'")
+  if "scope_kecamatan_id" not in collab_cols:
+    execute(conn, "ALTER TABLE collaboration_requests ADD COLUMN scope_kecamatan_id INTEGER")
+  if "scope_kelurahan_id" not in collab_cols:
+    execute(conn, "ALTER TABLE collaboration_requests ADD COLUMN scope_kelurahan_id INTEGER")
 
   event_cols = conn.execute("PRAGMA table_info(events)").fetchall()
   names = {row["name"] for row in event_cols}
@@ -623,22 +665,37 @@ def seed_roles(conn):
 
 
 def seed_geography(conn):
-  # Always upsert geography so existing demo DBs can be repaired
-  # when new/complete Surabaya coverage is added.
-  for kec in parse_geo_data():
+  # Keep DB in-sync with src/data/geographicData.ts by code (not by existing names).
+  # This repairs legacy demo DBs where kelurahan names/kodepos mappings were shifted.
+  # IMPORTANT: do not recreate rows to preserve foreign-key references from users/events.
+  parsed = parse_geo_data()
+  valid_kel_codes = set()
+  for kec in parsed:
     execute(conn, "INSERT OR IGNORE INTO kecamatan(code, name) VALUES(?, ?)", (kec["kode"], kec["nama"]))
+    execute(conn, "UPDATE kecamatan SET name = ? WHERE code = ?", (kec["nama"], kec["kode"]))
     kec_id = conn.execute("SELECT id FROM kecamatan WHERE code = ?", (kec["kode"],)).fetchone()["id"]
+
     for kel in kec["kelurahan"]:
+      valid_kel_codes.add(kel["kode"])
       execute(
         conn,
         "INSERT OR IGNORE INTO kelurahan(code, kecamatan_id, name) VALUES(?, ?, ?)",
         (kel["kode"], kec_id, kel["nama"]),
       )
+      execute(
+        conn,
+        "UPDATE kelurahan SET name = ?, kecamatan_id = ? WHERE code = ?",
+        (kel["nama"], kec_id, kel["kode"]),
+      )
       kel_id = conn.execute("SELECT id FROM kelurahan WHERE code = ?", (kel["kode"],)).fetchone()["id"]
+
+      # Replace mapping for this kelurahan with exact mapping from geographicData.ts.
+      execute(conn, "DELETE FROM kampung_mapping WHERE kelurahan_id = ?", (kel_id,))
       for code in kel["kodepos"]:
         execute(conn, "INSERT OR IGNORE INTO postal_codes(code) VALUES(?)", (code,))
         p_id = conn.execute("SELECT id FROM postal_codes WHERE code = ?", (code,)).fetchone()["id"]
         execute(conn, "INSERT OR IGNORE INTO kampung_mapping(kelurahan_id, postal_code_id) VALUES(?, ?)", (kel_id, p_id))
+
       execute(conn, "INSERT OR IGNORE INTO xp_kelurahan(kelurahan_id, total_xp, updated_at) VALUES(?, 0, ?)", (kel_id, utc_now_iso()))
       for pillar in (1, 2, 3, 4):
         execute(
@@ -646,6 +703,21 @@ def seed_geography(conn):
           "INSERT OR IGNORE INTO xp_pillar(kelurahan_id, pillar, xp, updated_at) VALUES(?, ?, 0, ?)",
           (kel_id, pillar, utc_now_iso()),
         )
+
+  # Remove stale postcode links from deprecated kelurahan rows so `/kodepos/*`
+  # always follows canonical mapping from geographicData.ts.
+  if valid_kel_codes:
+    placeholders = ",".join(["?"] * len(valid_kel_codes))
+    execute(
+      conn,
+      f"""
+      DELETE FROM kampung_mapping
+      WHERE kelurahan_id IN (
+        SELECT id FROM kelurahan WHERE code NOT IN ({placeholders})
+      )
+      """,
+      tuple(sorted(valid_kel_codes)),
+    )
 
 
 def insert_user(conn, name, email, password, role_code, *, is_ksh=0, tier=None, tier2_badge=None, kelurahan_name=None):
@@ -937,11 +1009,11 @@ class Handler(BaseHTTPRequestHandler):
             kelurahan.id AS kel_id,
             kelurahan.name AS kel_name,
             postal_codes.code AS kodepos
-          FROM kecamatan
-          LEFT JOIN kelurahan ON kelurahan.kecamatan_id = kecamatan.id
-          LEFT JOIN kampung_mapping ON kampung_mapping.kelurahan_id = kelurahan.id
-          LEFT JOIN postal_codes ON postal_codes.id = kampung_mapping.postal_code_id
-          ORDER BY kecamatan.name ASC, kelurahan.name ASC
+          FROM kampung_mapping
+          JOIN kelurahan ON kelurahan.id = kampung_mapping.kelurahan_id
+          JOIN kecamatan ON kecamatan.id = kelurahan.kecamatan_id
+          JOIN postal_codes ON postal_codes.id = kampung_mapping.postal_code_id
+          ORDER BY kecamatan.name ASC, kelurahan.name ASC, postal_codes.code ASC
           """
         ).fetchall()
         grouped = {}
@@ -962,6 +1034,20 @@ class Handler(BaseHTTPRequestHandler):
           result.append(out)
         return write_json(self, 200, {"kecamatan": result})
 
+      if path == f"{API_PREFIX}/geo/stats":
+        stats = get_geo_stats()
+        return write_json(
+          self,
+          200,
+          {
+            "stats": {
+              "kecamatan": int(stats["kecamatan"]),
+              "kelurahan": int(stats["kelurahan"]),
+              "kodepos": int(stats["kodepos"]),
+            }
+          },
+        )
+
       if path == f"{API_PREFIX}/landing/leaderboard":
         rows = conn.execute(
           """
@@ -969,6 +1055,9 @@ class Handler(BaseHTTPRequestHandler):
           FROM xp_kelurahan
           JOIN kelurahan ON kelurahan.id = xp_kelurahan.kelurahan_id
           JOIN kecamatan ON kecamatan.id = kelurahan.kecamatan_id
+          WHERE EXISTS (
+            SELECT 1 FROM kampung_mapping WHERE kampung_mapping.kelurahan_id = kelurahan.id
+          )
           ORDER BY xp_kelurahan.total_xp DESC, kelurahan.name ASC
           LIMIT 7
           """
@@ -994,6 +1083,9 @@ class Handler(BaseHTTPRequestHandler):
           FROM kelurahan
           JOIN kecamatan ON kecamatan.id = kelurahan.kecamatan_id
           JOIN xp_kelurahan ON xp_kelurahan.kelurahan_id = kelurahan.id
+          WHERE EXISTS (
+            SELECT 1 FROM kampung_mapping WHERE kampung_mapping.kelurahan_id = kelurahan.id
+          )
           ORDER BY xp_kelurahan.total_xp DESC, kelurahan.name ASC
           LIMIT 100
           """
@@ -1009,9 +1101,15 @@ class Handler(BaseHTTPRequestHandler):
           return write_json(self, 403, {"error": "Hanya Moderator Tier 2/Admin"})
         status_filter = query.get("status", [None])[0]
         sql = """
-          SELECT collaboration_requests.*, users.name AS reviewer_name
+          SELECT
+            collaboration_requests.*,
+            users.name AS reviewer_name,
+            kecamatan.name AS scope_kecamatan_name,
+            kelurahan.name AS scope_kelurahan_name
           FROM collaboration_requests
           LEFT JOIN users ON users.id = collaboration_requests.reviewed_by_user_id
+          LEFT JOIN kecamatan ON kecamatan.id = collaboration_requests.scope_kecamatan_id
+          LEFT JOIN kelurahan ON kelurahan.id = collaboration_requests.scope_kelurahan_id
           WHERE 1=1
         """
         params = []
@@ -1029,6 +1127,11 @@ class Handler(BaseHTTPRequestHandler):
               "picName": row["pic_name"],
               "email": row["email"],
               "supportType": row["support_type"],
+              "contributionScope": row["contribution_scope"] or "kota",
+              "scopeKecamatanId": row["scope_kecamatan_id"],
+              "scopeKelurahanId": row["scope_kelurahan_id"],
+              "scopeKecamatanName": row["scope_kecamatan_name"],
+              "scopeKelurahanName": row["scope_kelurahan_name"],
               "supportDescription": row["support_description"],
               "status": row["status"],
               "reviewedByName": row["reviewer_name"],
@@ -1299,25 +1402,62 @@ class Handler(BaseHTTPRequestHandler):
         pic_name = bounded_text(body.get("picName", ""), 120)
         email = str(body.get("email", "")).strip().lower()
         support_type = str(body.get("supportType", "")).strip().lower()
+        contribution_scope = str(body.get("contributionScope", "kota")).strip().lower()
         support_description = bounded_text(body.get("supportDescription", ""), 2000)
         if not organization_name or not pic_name or not email or not support_type or not support_description:
           return write_json(self, 400, {"error": "Semua field kolaborasi wajib diisi"})
         if support_type not in ("dana", "konsumsi", "peralatan", "media_partner", "lainnya"):
           return write_json(self, 400, {"error": "Jenis dukungan tidak valid"})
+        if contribution_scope not in ("kota", "kecamatan", "kelurahan"):
+          return write_json(self, 400, {"error": "Skala kontribusi tidak valid"})
         if not valid_email(email):
           return write_json(self, 400, {"error": "Format email tidak valid"})
+        scope_kecamatan_id = None
+        scope_kelurahan_id = None
+        if contribution_scope in ("kecamatan", "kelurahan"):
+          try:
+            scope_kecamatan_id = int(body.get("kecamatanId"))
+          except Exception:
+            return write_json(self, 400, {"error": "Kecamatan wajib dipilih untuk skala ini"})
+          kec = conn.execute("SELECT id FROM kecamatan WHERE id = ?", (scope_kecamatan_id,)).fetchone()
+          if not kec:
+            return write_json(self, 400, {"error": "Kecamatan tidak ditemukan"})
+        if contribution_scope == "kelurahan":
+          try:
+            scope_kelurahan_id = int(body.get("kelurahanId"))
+          except Exception:
+            return write_json(self, 400, {"error": "Kelurahan wajib dipilih untuk skala kelurahan"})
+          kel = conn.execute(
+            "SELECT id FROM kelurahan WHERE id = ? AND kecamatan_id = ?",
+            (scope_kelurahan_id, scope_kecamatan_id),
+          ).fetchone()
+          if not kel:
+            return write_json(self, 400, {"error": "Kelurahan tidak sesuai kecamatan pilihan"})
         req_id = f"collab-{uuid.uuid4().hex[:10]}"
         now = utc_now_iso()
         execute(
           conn,
           """
           INSERT INTO collaboration_requests(
-            id, organization_name, pic_name, email, support_type, support_description,
+            id, organization_name, pic_name, email, support_type, contribution_scope,
+            scope_kecamatan_id, scope_kelurahan_id, support_description,
             status, reviewed_by_user_id, reviewed_at, created_at, updated_at
           )
-          VALUES(?, ?, ?, ?, ?, ?, 'pending', NULL, NULL, ?, ?)
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NULL, ?, ?)
           """,
-          (req_id, organization_name, pic_name, email, support_type, support_description, now, now),
+          (
+            req_id,
+            organization_name,
+            pic_name,
+            email,
+            support_type,
+            contribution_scope,
+            scope_kecamatan_id,
+            scope_kelurahan_id,
+            support_description,
+            now,
+            now,
+          ),
         )
         return write_json(self, 200, {"success": True, "request": {"id": req_id}})
 
@@ -1684,6 +1824,31 @@ class Handler(BaseHTTPRequestHandler):
       return write_json(self, 400, {"error": str(exc)})
     except Exception as exc:
       print(f"[POST] error path={self.path}: {exc}")
+      if IS_PRODUCTION:
+        return write_json(self, 500, {"error": "Internal server error"})
+      return write_json(self, 500, {"error": str(exc)})
+    finally:
+      conn.commit()
+      conn.close()
+
+  def do_DELETE(self):
+    conn = connect_db()
+    try:
+      path = urlparse(self.path).path
+      if rate_limited(self, "mutation", RATE_LIMIT_MUTATION_MAX, RATE_LIMIT_WINDOW_SECONDS):
+        return write_json(self, 429, {"error": "Terlalu banyak permintaan, coba lagi sebentar"})
+      actor = user_from_token(conn, self.headers.get("Authorization"))
+      if not actor:
+        return write_json(self, 401, {"error": "Unauthorized"})
+      # DELETE /auth/logout alias
+      if path == f"{API_PREFIX}/auth/logout":
+        auth = self.headers.get("Authorization")
+        token_val = auth.split(" ", 1)[1].strip()
+        execute(conn, "DELETE FROM sessions WHERE token = ?", (token_val,))
+        return write_json(self, 200, {"success": True})
+      return write_json(self, 404, {"error": "Not found"})
+    except Exception as exc:
+      print(f"[DELETE] error path={self.path}: {exc}")
       if IS_PRODUCTION:
         return write_json(self, 500, {"error": "Internal server error"})
       return write_json(self, 500, {"error": str(exc)})

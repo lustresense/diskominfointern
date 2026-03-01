@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { CheckCircle, XCircle, FileText, Clock, LayoutGrid, ShieldCheck, Lightbulb, BarChart3, Users, Handshake } from 'lucide-react';
-import { apiBaseUrl } from '/utils/supabase/info';
+import { CheckCircle, XCircle, FileText, Clock, LayoutGrid, ShieldCheck, Lightbulb, BarChart3, Users, Handshake, Loader2 } from 'lucide-react';
+import { apiGet, apiPost } from '@/lib/api';
 import { toast } from 'sonner';
 import { FloatingNavbar } from '@/app/components/ui/FloatingNavbar';
 import { Input } from '@/app/components/ui/input';
@@ -86,15 +86,6 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
     return false;
   };
 
-  const handleUnauthorized = (response: Response) => {
-    if (response.status !== 401) {
-      return false;
-    }
-    toast.error('Sesi berakhir. Login ulang untuk melanjutkan.');
-    onLogout();
-    return true;
-  };
-
   const fetchData = async () => {
     if (!requireToken()) {
       return;
@@ -113,235 +104,89 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
       return;
     }
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/collaboration-requests`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-      if (!response.ok) {
-        throw new Error(`Gagal memuat kolaborasi (${response.status})`);
-      }
-      const data = await response.json();
+      const data = await apiGet('/collaboration-requests', authToken);
       setCollaborationRequests(data.requests || []);
-    } catch (error) {
-      console.error('Error fetching collaboration requests:', error);
+    } catch {
       toast.error('Data kolaborasi belum bisa dimuat.');
     }
   };
 
   const fetchGeoOptions = async () => {
-    if (!authToken) {
-      return;
-    }
+    if (!authToken) return;
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/geo/options`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-      if (!response.ok) {
-        throw new Error(`Gagal memuat wilayah (${response.status})`);
-      }
-      const data = await response.json();
+      const data = await apiGet('/geo/options', authToken);
       setGeoOptions(data.kecamatan || []);
-    } catch (error) {
-      console.error('Error fetching geo options:', error);
-      toast.error('Data kecamatan/kelurahan belum termuat. Pastikan API lokal aktif.');
+    } catch {
+      toast.error('Data kecamatan/kelurahan belum termuat.');
     }
   };
 
   const fetchReports = async () => {
-    if (!authToken) {
-      return;
-    }
+    if (!authToken) return;
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/reports`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setReports(data.reports || []);
-      }
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-    }
+      const data = await apiGet('/reports', authToken);
+      setReports(data.reports || []);
+    } catch { /* handled globally */ }
   };
 
   const fetchUsers = async () => {
-    if (!authToken) {
-      return;
-    }
+    if (!authToken) return;
     try {
-      const filter = moderatorTier === 1 ? `?kampungId=${user?.kampungId || ''}` : moderatorTier === 2 ? `?role=user` : '';
-      const response = await fetch(
-        `${apiBaseUrl}/users${filter}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
+      const params = new URLSearchParams();
+      // Moderator dashboard "Relawan Terpantau" must only include relawan/KSH.
+      params.set('role', 'user');
+      if (moderatorTier === 1 && user?.kampungId) {
+        params.set('kampungId', String(user.kampungId));
       }
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
+      const filter = params.toString() ? `?${params.toString()}` : '';
+      const data = await apiGet(`/users${filter}`, authToken);
+      setUsers(data.users || []);
+    } catch { /* handled globally */ }
   };
 
   const fetchEvents = async () => {
-    if (!authToken) {
-      return;
-    }
+    if (!authToken) return;
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/events`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data.events || []);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    }
+      const data = await apiGet('/events', authToken);
+      setEvents(data.events || []);
+    } catch { /* handled globally */ }
   };
 
   const handleVerifyReport = async (reportId: string, approved: boolean) => {
-    if (!requireToken()) {
-      return;
-    }
+    if (!requireToken()) return;
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/reports/${reportId}/verify`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({
-            approved,
-            points: approved ? 50 : 0
-          })
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-
-      if (response.ok) {
-        toast.success(approved ? 'Laporan disetujui' : 'Laporan ditolak');
-        fetchData();
-      } else {
-        toast.error('Gagal memverifikasi laporan');
-      }
-    } catch (error) {
-      console.error('Error verifying report:', error);
-      toast.error('Terjadi kesalahan');
+      await apiPost(`/reports/${reportId}/verify`, { approved, points: approved ? 50 : 0 }, authToken);
+      toast.success(approved ? 'Laporan disetujui' : 'Laporan ditolak');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memverifikasi laporan');
     }
   };
 
   const handleEventApproval = async (eventId: string, approved: boolean) => {
-    if (!requireToken()) {
-      return;
-    }
+    if (!requireToken()) return;
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/events/${eventId}/approval`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({ approved })
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-
-      if (response.ok) {
-        toast.success(approved ? 'Event disetujui' : 'Event ditolak');
-        fetchEvents();
-      } else {
-        toast.error('Gagal memproses approval');
-      }
-    } catch (error) {
-      console.error('Error approving event:', error);
-      toast.error('Terjadi kesalahan');
+      await apiPost(`/events/${eventId}/approval`, { approved }, authToken);
+      toast.success(approved ? 'Event disetujui' : 'Event ditolak');
+      fetchEvents();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memproses approval');
     }
   };
 
   const handleCollaborationApproval = async (requestId: string, approved: boolean) => {
-    if (!requireToken()) {
-      return;
-    }
+    if (!requireToken()) return;
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/collaboration-requests/${requestId}/approval`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({ approved })
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Gagal memproses kolaborasi');
-      }
+      await apiPost(`/collaboration-requests/${requestId}/approval`, { approved }, authToken);
       toast.success(approved ? 'Kolaborasi disetujui' : 'Kolaborasi ditolak');
       fetchCollaborationRequests();
-    } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan');
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan');
     }
   };
 
   const handleCreateTier1Event = async () => {
-    if (!requireToken()) {
-      return;
-    }
+    if (!requireToken()) return;
     if (!eventForm.title.trim() || !eventForm.date) {
       toast.error('Judul dan tanggal wajib diisi');
       return;
@@ -356,36 +201,18 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
     }
     setSubmittingEvent(true);
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/events`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({
-            title: eventForm.title,
-            description: eventForm.description,
-            pillar: parseInt(eventForm.pillar, 10),
-            scopeType: eventForm.scopeType,
-            kecamatanId: Number(eventForm.kecamatanId),
-            kelurahanId: eventForm.scopeType === 'kelurahan' ? Number(eventForm.kelurahanId) : null,
-            date: eventForm.date,
-            time: eventForm.time,
-            location: eventForm.location,
-            quota: eventForm.quota
-          })
-        }
-      );
-      if (handleUnauthorized(response)) {
-        return;
-      }
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Gagal input kegiatan');
-      }
+      await apiPost('/events', {
+        title: eventForm.title,
+        description: eventForm.description,
+        pillar: parseInt(eventForm.pillar, 10),
+        scopeType: eventForm.scopeType,
+        kecamatanId: Number(eventForm.kecamatanId),
+        kelurahanId: eventForm.scopeType === 'kelurahan' ? Number(eventForm.kelurahanId) : null,
+        date: eventForm.date,
+        time: eventForm.time,
+        location: eventForm.location,
+        quota: eventForm.quota,
+      }, authToken);
       toast.success('Kegiatan draft berhasil dibuat');
       setEventForm({
         title: '',
@@ -397,11 +224,11 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
         date: '',
         time: '',
         location: '',
-        quota: 0
+        quota: 0,
       });
       fetchEvents();
-    } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan');
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan');
     } finally {
       setSubmittingEvent(false);
     }
@@ -509,7 +336,7 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="w-5 h-5 text-cyan-600" />
-              Relawan Terpantau
+              Relawan & KSH Terpantau
             </CardTitle>
             <CardDescription>
               {moderatorTier === 1
@@ -914,6 +741,16 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
                         <span className="font-semibold">Jenis Dukungan:</span>{" "}
                         {request.supportType === 'media_partner' ? 'Media partner' : request.supportType}
                       </div>
+                      <div className="mt-1 text-sm text-gray-700">
+                        <span className="font-semibold">Skala:</span>{" "}
+                        {request.contributionScope === "kota"
+                          ? "Kota"
+                          : request.contributionScope === "kecamatan"
+                            ? `Kecamatan${request.scopeKecamatanName ? ` - ${request.scopeKecamatanName}` : ""}`
+                            : `Kelurahan${request.scopeKelurahanName ? ` - ${request.scopeKelurahanName}` : ""}${
+                                request.scopeKecamatanName ? ` (${request.scopeKecamatanName})` : ""
+                              }`}
+                      </div>
                       <p className="mt-1 text-sm text-gray-700">{request.supportDescription}</p>
                       <div className="mt-3 flex gap-2">
                         <Button
@@ -1012,4 +849,3 @@ export function ModeratorDashboard({ user, authToken, onLogout, onNavigate, curr
     </div>
   );
 }
-

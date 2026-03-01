@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowUpRight, X } from "lucide-react";
 
 interface FloatingEntryCTAProps {
   onJoin: () => void;
@@ -63,7 +64,17 @@ export function FloatingEntryCTA({ onJoin, onCollaborate }: FloatingEntryCTAProp
       >
         <div className="mx-auto flex max-w-md flex-col items-center gap-3">
           {expanded && (
-            <div className="cta-panel-enter w-full rounded-3xl border border-[#d6e0d9] bg-white p-4 shadow-[0_22px_40px_rgba(0,0,0,0.22)]">
+            <div className="cta-panel-enter w-full space-y-2 rounded-3xl border border-[#d6e0d9] bg-white p-4 shadow-[0_22px_40px_rgba(0,0,0,0.22)]">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className="grid h-8 w-8 place-items-center rounded-full border border-[#d6e0d9] text-[#203229] transition hover:bg-[#eef4f0]"
+                  aria-label="Tutup panel"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -95,7 +106,20 @@ export function FloatingEntryCTA({ onJoin, onCollaborate }: FloatingEntryCTAProp
             className="inline-flex items-center rounded-full border border-[#d6e0d9] bg-white p-1 shadow-[0_14px_28px_rgba(17,38,28,0.24)] transition"
             aria-label="Buka pilihan akses cepat"
           >
-            <span className="rounded-full px-6 py-3 text-sm font-semibold text-[#16241c]">{labels[labelIndex]}</span>
+            <span className="relative h-[46px] min-w-[136px] overflow-hidden rounded-full px-6 py-3 text-sm font-semibold text-[#16241c]">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={labels[labelIndex]}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  {labels[labelIndex]}
+                </motion.span>
+              </AnimatePresence>
+            </span>
             <span className="grid h-10 w-10 place-items-center rounded-full bg-[#0f5f3f] text-white">
               <ArrowUpRight className="h-4 w-4" />
             </span>

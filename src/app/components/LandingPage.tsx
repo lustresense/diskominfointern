@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiBaseUrl } from "/utils/supabase/info";
+import { apiPublicGet } from "@/lib/api";
 import { CenteredLogoNav } from "@/app/components/landing/CenteredLogoNav";
 import { HeroSection } from "@/app/components/landing/HeroSection";
 import { PillarsSection } from "@/app/components/landing/PillarsSection";
@@ -19,32 +19,53 @@ interface LandingPageProps {
 
 export function LandingPage({ onNavigate }: LandingPageProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [showSplash, setShowSplash] = useState(false);
+  const [geoStats, setGeoStats] = useState({ kelurahan: 154, kodepos: 128 });
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    const raw = window.localStorage.getItem("simrekap_splash_last_at");
+    const lastAt = raw ? Number(raw) : 0;
+    const intervalMs = 15 * 60 * 1000;
+    return !lastAt || Number.isNaN(lastAt) || Date.now() - lastAt >= intervalMs;
+  });
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await fetch(`${apiBaseUrl}/landing/leaderboard`);
-        if (!response.ok) {
-          return;
-        }
-        const data = await response.json();
+        const data = await apiPublicGet('/landing/leaderboard');
         setLeaderboard(Array.isArray(data.leaderboard) ? data.leaderboard : []);
-      } catch (error) {
-        console.error("Failed to fetch landing leaderboard:", error);
+      } catch {
+        // Landing leaderboard is non-critical
+      }
+    };
+    const fetchGeoStats = async () => {
+      try {
+        const data = await apiPublicGet<any>('/geo/stats');
+        const stats = data?.stats || {};
+        if (typeof stats.kelurahan === "number" && typeof stats.kodepos === "number") {
+          setGeoStats({ kelurahan: stats.kelurahan, kodepos: stats.kodepos });
+        }
+      } catch {
+        // Non-critical for landing
       }
     };
     fetchLeaderboard();
+    fetchGeoStats();
   }, []);
 
   useEffect(() => {
+    if (!showSplash) {
+      return;
+    }
     setShowSplash(true);
     const timer = window.setTimeout(() => {
       setShowSplash(false);
+      window.localStorage.setItem("simrekap_splash_last_at", String(Date.now()));
     }, 2400);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   const navigateSmooth = (page: LandingNavigatePage) => {
     if (isLeaving) {
@@ -66,6 +87,8 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
       />
       <main className="pb-24">
         <HeroSection
+          totalKelurahan={geoStats.kelurahan}
+          totalKodepos={geoStats.kodepos}
           onExplore={() => document.getElementById("pilar")?.scrollIntoView({ behavior: "smooth", block: "start" })}
         />
         <PillarsSection />
@@ -82,10 +105,10 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
           <div>
             <div className="flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#FFC107] text-sm font-bold text-[#173025]">SR</span>
-              <span className="text-sm font-semibold">SIMRP</span>
+              <span className="text-sm font-semibold">SIMREKAP</span>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-white/82">
-              Sistem Informasi Manajemen Relawan Kampung Pancasila untuk penguatan program kampung berbasis data terverifikasi.
+              Sistem Informasi Manajemen RElawan KAmpung Pancasila berbasis data terverifikasi.
             </p>
           </div>
           <div>
@@ -100,7 +123,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/76">Instansi</p>
             <p className="mt-3 text-sm text-white/86">Dinas Komunikasi dan Informatika Kota Surabaya</p>
-            <p className="mt-1 text-xs text-white/70">SIMRP v1.0 - The Pillar-Balance & Maturity Engine</p>
+            <p className="mt-1 text-xs text-white/70">SIMREKAP v1.0 - The Pillar-Balance & Maturity Engine</p>
           </div>
         </div>
       </footer>

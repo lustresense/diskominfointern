@@ -5,7 +5,7 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { X, Camera, Loader2, CheckCircle } from 'lucide-react';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiPost } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface ReportingWizardProps {
@@ -89,28 +89,15 @@ export function ReportingWizard({ authToken, userId, events, onClose }: Reportin
         createdAt: new Date().toISOString()
       };
 
-      const response = await fetch(
-        `${apiBaseUrl}/reports`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify(reportData)
-        }
-      );
+      const data = await apiPost('/reports', reportData, authToken);
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         toast.success('Laporan berhasil dikirim!');
         onClose();
       } else {
-        throw new Error(data.error || 'Gagal mengirim laporan');
+        throw new Error('Gagal mengirim laporan');
       }
     } catch (error: any) {
-      console.error('Error submitting report:', error);
       toast.error(error.message || 'Terjadi kesalahan saat mengirim laporan');
     } finally {
       setLoading(false);

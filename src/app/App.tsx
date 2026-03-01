@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { LandingPage } from '@/app/components/LandingPage';
 import { LoginPage } from '@/app/components/LoginPage';
 import { RegisterPage } from '@/app/components/RegisterPage';
@@ -10,6 +10,7 @@ import { CollaborationPage } from '@/app/components/CollaborationPage';
 import { AboutPage } from '@/app/components/AboutPage';
 import { FaqPage } from '@/app/components/FaqPage';
 import { Toaster } from 'sonner';
+import { setOnUnauthorized, apiGet } from '@/lib/api';
 
 type Page = 'landing' | 'login' | 'register' | 'collaboration' | 'about' | 'faq' | 'admin-login' | 'dashboard';
 
@@ -41,40 +42,46 @@ export default function App() {
 
   // Seed database with sample data
 
-  // Check for existing session on mount
+  // Check for existing session on mount — validate with server
   useEffect(() => {
     const token = localStorage.getItem('simrp_auth_token');
-    const userStr = localStorage.getItem('simrp_user');
     const savedView = localStorage.getItem('simrp_current_view') as 'admin' | 'moderator' | 'user' | null;
     const savedTier = localStorage.getItem('simrp_moderator_tier');
-    
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
+
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    // Validate token against backend instead of trusting localStorage user object
+    apiGet('/auth/me', token)
+      .then((data) => {
+        const user = data.user;
         setAuthToken(token);
         setCurrentUser(user);
-        
-        // Set view based on role and saved preference
+
+        // Sync user back to localStorage (server is truth source)
+        localStorage.setItem('simrp_user', JSON.stringify(user));
+
         if (savedView && canAccessView(user.role, savedView)) {
           setCurrentView(savedView);
         } else {
-          // Default view based on role
           setCurrentView(user.role);
         }
         if (savedTier === '1' || savedTier === '2' || savedTier === '3') {
           setModeratorTier(parseInt(savedTier, 10) as 1 | 2 | 3);
         }
-        
+
         setCurrentPage('dashboard');
-      } catch (e) {
-        console.error('Failed to parse stored user:', e);
+      })
+      .catch(() => {
+        // Token expired or invalid — clear everything
         localStorage.removeItem('simrp_auth_token');
         localStorage.removeItem('simrp_user');
         localStorage.removeItem('simrp_current_view');
-      }
-    }
-    
-    setLoading(false);
+        localStorage.removeItem('simrp_moderator_tier');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -147,7 +154,19 @@ export default function App() {
     window.history.pushState({}, '', '/app');
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
+    // Attempt server-side session invalidation (fire-and-forget)
+    const token = authToken || localStorage.getItem('simrp_auth_token');
+    if (token) {
+      fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/make-server-32aa5c5c'}/auth/logout`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: '{}',
+        },
+      ).catch(() => { /* ignore network errors during logout */ });
+    }
     setCurrentUser(null);
     setAuthToken(null);
     setCurrentView('user');
@@ -157,7 +176,12 @@ export default function App() {
     localStorage.removeItem('simrp_moderator_tier');
     setCurrentPage('landing');
     window.history.pushState({}, '', '/');
-  };
+  }, [authToken]);
+
+  // Wire global 401 handler so any apiRequest(…) auto-logs-out
+  useEffect(() => {
+    setOnUnauthorized(handleLogout);
+  }, [handleLogout]);
 
   const navigateTo = (page: Page) => {
     setCurrentPage(page);
@@ -199,7 +223,7 @@ export default function App() {
       <div className="size-full flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-gray-200 border-t-[#FFC107] rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-black text-xl font-bold tracking-tight">SIMRP</div>
+          <div className="text-black text-xl font-bold tracking-tight">SIMREKAP</div>
         </div>
       </div>
     );

@@ -6,7 +6,7 @@ import { Label } from '@/app/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiPublicGet, apiPublicPost } from '@/lib/api';
 
 interface RegisterPageProps {
   onNavigate: (page: 'landing' | 'login') => void;
@@ -37,15 +37,7 @@ export function RegisterPage({ onNavigate, onRegister }: RegisterPageProps) {
   useEffect(() => {
     const loadKodeposHints = async () => {
       try {
-        const res = await fetch(`${apiBaseUrl}/geo/options`, {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`
-          }
-        });
-        if (!res.ok) {
-          return;
-        }
-        const data = await res.json();
+        const data = await apiPublicGet<any>('/geo/options');
         const kodeposSet = new Set<string>();
         for (const kecamatan of data?.kecamatan || []) {
           for (const kelurahan of kecamatan?.kelurahan || []) {
@@ -79,21 +71,7 @@ export function RegisterPage({ onNavigate, onRegister }: RegisterPageProps) {
       }
 
       try {
-        const res = await fetch(
-          `${apiBaseUrl}/kodepos/${formData.kodepos}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${publicAnonKey}`
-            }
-          }
-        );
-        if (!res.ok) {
-          setKodeposValid(false);
-          setKelurahanOptions([]);
-          setFormData(prev => ({ ...prev, kecamatan: '', kelurahan: '' }));
-          return;
-        }
-        const data = await res.json();
+        const data = await apiPublicGet<any>(`/kodepos/${formData.kodepos}`);
         const list = (data?.kelurahan || []).map((k: any) => ({
           kelurahan: k.kelurahan,
           kecamatan: k.kecamatan
@@ -138,8 +116,8 @@ export function RegisterPage({ onNavigate, onRegister }: RegisterPageProps) {
       setError('Email tidak valid');
       return false;
     }
-    if (formData.password.length < 6) {
-      setError('Password minimal 6 karakter');
+    if (formData.password.length < 8 || !/[A-Za-z]/.test(formData.password) || !/\d/.test(formData.password)) {
+      setError('Password minimal 8 karakter, harus mengandung huruf dan angka');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -173,32 +151,16 @@ export function RegisterPage({ onNavigate, onRegister }: RegisterPageProps) {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/auth/signup`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            name: formData.name,
-            nik: formData.nik,
-            kecamatan: formData.kecamatan,
-            kelurahan: formData.kelurahan,
-            kodepos: formData.kodepos,
-            rw: formData.rw
-          })
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Pendaftaran gagal');
-      }
+      const data = await apiPublicPost<any>('/auth/signup', {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        nik: formData.nik,
+        kecamatan: formData.kecamatan,
+        kelurahan: formData.kelurahan,
+        kodepos: formData.kodepos,
+        rw: formData.rw
+      });
 
       if (data.success) {
         setSuccess('Pendaftaran berhasil! Mengalihkan...');
@@ -209,8 +171,7 @@ export function RegisterPage({ onNavigate, onRegister }: RegisterPageProps) {
         }, 1500);
       }
     } catch (err: any) {
-      console.error('Registration error:', err);
-      setError(err.message || 'Terjadi kesalahan saat pendaftaran');
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat pendaftaran');
     } finally {
       setLoading(false);
     }
@@ -328,7 +289,7 @@ export function RegisterPage({ onNavigate, onRegister }: RegisterPageProps) {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Minimal 6 karakter"
+                    placeholder="Minimal 8 karakter (huruf & angka)"
                     value={formData.password}
                     onChange={(e) => handleChange('password', e.target.value)}
                     required

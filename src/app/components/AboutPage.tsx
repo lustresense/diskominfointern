@@ -37,7 +37,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
         </button>
 
         <section className="rounded-3xl border border-[#d5e0d9] bg-white p-6 md:p-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-[#15231c] md:text-4xl">Tentang Program Kampung Pancasila</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#15231c] md:text-4xl">Tentang Program SIMREKAP</h1>
           <p className="mt-5 text-sm leading-relaxed text-[#4f6058] md:text-base">
             Kampung Pancasila adalah inisiatif Pemerintah Kota Surabaya yang membumikan nilai-nilai Pancasila langsung di
             kehidupan warga sehari-hari. Program ini bertujuan menciptakan kampung yang guyub, saling tolong-menolong,

@@ -6,9 +6,10 @@ import { Badge } from '@/app/components/ui/badge';
 import { EventList } from '@/app/components/EventList';
 import { ReportingWizard } from '@/app/components/ReportingWizard';
 import { UserProfile } from '@/app/components/UserProfile';
-import { apiBaseUrl, publicAnonKey } from '/utils/supabase/info';
+import { apiGet, apiPost } from '@/lib/api';
 import { FloatingNavbar } from '@/app/components/ui/FloatingNavbar';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface UserDashboardProps {
   user: any;
@@ -35,69 +36,38 @@ export function UserDashboard({
   const [userMode, setUserMode] = useState<'relawan' | 'ksh'>(user?.isKsh ? 'ksh' : 'relawan');
   const [reports, setReports] = useState<any[]>([]);
   const [kampungLeaderboard, setKampungLeaderboard] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    fetchEvents();
-    fetchReports();
-    fetchKampungLeaderboard();
+    setDataLoading(true);
+    Promise.all([fetchEvents(), fetchReports(), fetchKampungLeaderboard()])
+      .finally(() => setDataLoading(false));
   }, [userMode]);
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/events`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data.events || []);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
+      const data = await apiGet('/events', authToken);
+      setEvents(data.events || []);
+    } catch {
+      toast.error('Gagal memuat event');
     }
   };
 
   const fetchReports = async () => {
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/reports?userId=${user?.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setReports(data.reports || []);
-      }
-    } catch (error) {
-      console.error('Error fetching reports:', error);
+      const data = await apiGet(`/reports?userId=${user?.id}`, authToken);
+      setReports(data.reports || []);
+    } catch {
+      toast.error('Gagal memuat laporan');
     }
   };
 
   const fetchKampungLeaderboard = async () => {
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/kampung`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          }
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setKampungLeaderboard(data.kampung || []);
-      }
-    } catch (error) {
-      console.error('Error fetching kampung leaderboard:', error);
+      const data = await apiGet('/kampung', authToken);
+      setKampungLeaderboard(data.kampung || []);
+    } catch {
+      // silent — leaderboard is non-critical
     }
   };
 
@@ -108,27 +78,11 @@ export function UserDashboard({
       return;
     }
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/events/${eventId}/complete`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken || publicAnonKey}`
-          },
-          body: JSON.stringify({ outputSummary: outputSummary.trim() })
-        }
-      );
-      if (response.ok) {
-        toast.success('Event ditandai selesai');
-        fetchEvents();
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Gagal menandai event selesai');
-      }
-    } catch (error) {
-      console.error('Error completing event:', error);
-      toast.error('Terjadi kesalahan');
+      await apiPost(`/events/${eventId}/complete`, { outputSummary: outputSummary.trim() }, authToken);
+      toast.success('Event ditandai selesai');
+      fetchEvents();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menandai event selesai');
     }
   };
 
@@ -177,6 +131,13 @@ export function UserDashboard({
 
       {/* Content Area */}
       <div className="flex-1 overflow-auto px-4 pt-24 pb-8">
+        {dataLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-green-700" />
+            <span className="ml-3 text-gray-500">Memuat data...</span>
+          </div>
+        ) : (
+        <>
         {/* Home Tab */}
         {activePage === 'home' && (
           <div className="space-y-6">
@@ -422,6 +383,8 @@ export function UserDashboard({
           <div className="pt-2">
              <UserProfile user={user} reports={reports} />
           </div>
+        )}
+        </>
         )}
       </div>
 
