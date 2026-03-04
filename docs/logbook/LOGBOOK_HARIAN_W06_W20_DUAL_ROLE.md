@@ -89,6 +89,8 @@ Lampiran Farchan (Bukti Screenshot):
 - `docs/logbook/PROJECT_MANAGEMENT_20_WEEKS_SIMREKAP.md` baris 49-63: baseline target mingguan W06-W20.
 - `docs/architecture/GRAND_DESIGN_FINAL.md` baris 70-95: definisi peran aktor dan kebutuhan sistem.
 - `docs/architecture/SITEMAP_IA_SIMRP.md` baris 23-39: struktur IA dan role workspace.
+- `server/local_api.py` baris 850-1200: implementasi handler GET untuk API contract v1.
+- `server/local_api.py` baris 1200-1600: implementasi handler POST untuk API contract v1.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Finalkan design token dan setup struktur FE sprint-ready.
@@ -109,16 +111,18 @@ Task Referensi Farchan: ERD & Sprint Planning W07
 Task Referensi Ikram: UI Audit & Component Mapping
 
 #### Entri Farchan (UX+Backend)
-Aktivitas: Finalisasi persona, journey map, dan problem framing.
+Aktivitas: Finalisasi ERD relasi user-event-report-point.
 Uraian Kegiatan (Logbook):
-"Di hari ini saya ngerjain Finalisasi persona, journey map, dan problem framing sampai tuntas. Prosesnya saya pakai untuk nutup detail yang masih gantung, nyamain aturan bisnis dengan kebutuhan modul aktif, dan ngecek konsistensi data biar tidak bentrok di integrasi berikutnya. Hasil akhir saya pastikan sudah rapi dan terdokumentasi supaya 'Dokumen persona/journey + component map' benar-benar siap dipakai."
+"Di hari ini saya ngerjain Finalisasi ERD relasi user-event-report-point sampai tuntas. Prosesnya saya pakai untuk nutup detail yang masih gantung, nyamain aturan bisnis dengan kebutuhan modul aktif, dan ngecek konsistensi data biar tidak bentrok di integrasi berikutnya. Hasil akhir saya pastikan sudah rapi dan terdokumentasi supaya 'ERD final revisi' benar-benar siap dipakai."
 Output Farchan:
-- Artefak UX+Backend harian selesai: Finalisasi persona, journey map, dan problem framing.
-- Outcome harian terukur: Dokumen persona/journey + component map.
+- Artefak UX+Backend harian selesai: Finalisasi ERD relasi user-event-report-point.
+- Outcome harian terukur: ERD final revisi.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/logbook/PROJECT_MANAGEMENT_20_WEEKS_SIMREKAP.md` baris 49-63: baseline target mingguan W06-W20.
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 70-95: definisi peran aktor dan kebutuhan sistem.
-- `docs/architecture/SITEMAP_IA_SIMRP.md` baris 23-39: struktur IA dan role workspace.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 180-195: arsitektur konseptual data layer.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: aturan bisnis relasi poin dan reward.
+- `docs/logbook/PROJECT_MANAGEMENT_20_WEEKS_SIMREKAP.md` baris 49-63: baseline target mingguan W06.
+- `server/local_api.py` baris 324-460: definisi skema database (users, events, reports, roles) dalam `init_schema`.
+- `server/local_api.py` baris 369-380: relasi tabel `event_participation` ke user dan event.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Sinkronkan wireframe akhir ke struktur komponen FE.
@@ -212,17 +216,17 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement validasi signup/login backend.
 - Outcome harian terukur: Flow login/register jalan.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1211-1291: endpoint `auth/signup`, `auth/login`, `auth/admin-login`.
-- `server/local_api.py` baris 240-252: `create_session()` dan `user_from_token()`.
-- `server/local_api.py` baris 24-26 dan 120: policy auth/security dan rate limiting.
+- `src/app/components/LoginPage.tsx` baris 36: integrasi endpoint `/auth/login`.
+- `src/app/components/RegisterPage.tsx` baris 150: integrasi endpoint `/auth/signup`.
+- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: aturan validasi keamanan auth.
 
 #### Entri Ikram (UI+Frontend)
-Aktivitas: Desain state auth loading-error-success dan implement form FE.
+Aktivitas: Slicing login/register page.
 Uraian Kegiatan (Logbook):
-"Hari ini saya implement Desain state auth loading-error-success dan implement form FE pada sisi UI+Frontend. Saya kerjain dari slicing komponen, wiring state, sampai integrasi request-response ke API biar alurnya nyambung end-to-end. Setelah smoke test di role terkait, hasil 'Flow login/register jalan' saya pastikan stabil untuk dipakai lanjut di task berikutnya."
+"Hari ini saya implement Slicing login/register page pada sisi UI+Frontend. Saya kerjain dari slicing komponen, wiring state, sampai integrasi request-response ke API biar alurnya nyambung end-to-end. Setelah smoke test di role terkait, hasil 'UI auth siap' saya pastikan stabil untuk dipakai lanjut di task berikutnya."
 Output Ikram:
-- Artefak UI+Frontend harian selesai: Desain state auth loading-error-success dan implement form FE.
-- Outcome harian terukur: Flow login/register jalan.
+- Artefak UI+Frontend harian selesai: Slicing login/register page.
+- Outcome harian terukur: UI auth siap.
 Lampiran Ikram (Bukti Screenshot):
 - `src/app/components/LoginPage.tsx` baris 30-44: login flow dan validasi role awal.
 - `src/app/components/AdminLoginPage.tsx` baris 28-29 dan `src/app/components/RegisterPage.tsx` baris 176-177: admin login + signup FE.
@@ -242,17 +246,16 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement session, auth me, dan logout backend.
 - Outcome harian terukur: Session flow stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1211-1291: endpoint `auth/signup`, `auth/login`, `auth/admin-login`.
-- `server/local_api.py` baris 240-252: `create_session()` dan `user_from_token()`.
-- `server/local_api.py` baris 24-26 dan 120: policy auth/security dan rate limiting.
+- `src/app/App.tsx` baris 55-60: validasi session token via endpoint `/auth/me`.
+- `src/app/App.tsx` baris 153-165: logic logout dan pembersihan session storage.
 
 #### Entri Ikram (UI+Frontend)
-Aktivitas: Integrasi token storage dan route guard FE.
+Aktivitas: Integrasi API auth + token storage.
 Uraian Kegiatan (Logbook):
-"Hari ini saya implement Integrasi token storage dan route guard FE pada sisi UI+Frontend. Saya kerjain dari slicing komponen, wiring state, sampai integrasi request-response ke API biar alurnya nyambung end-to-end. Setelah smoke test di role terkait, hasil 'Session flow stabil' saya pastikan stabil untuk dipakai lanjut di task berikutnya."
+"Hari ini saya implement Integrasi API auth + token storage pada sisi UI+Frontend. Saya kerjain dari slicing komponen, wiring state, sampai integrasi request-response ke API biar alurnya nyambung end-to-end. Setelah smoke test di role terkait, hasil 'Login flow jalan' saya pastikan stabil untuk dipakai lanjut di task berikutnya."
 Output Ikram:
-- Artefak UI+Frontend harian selesai: Integrasi token storage dan route guard FE.
-- Outcome harian terukur: Session flow stabil.
+- Artefak UI+Frontend harian selesai: Integrasi API auth + token storage.
+- Outcome harian terukur: Login flow jalan.
 Lampiran Ikram (Bukti Screenshot):
 - `src/app/components/LoginPage.tsx` baris 30-44: login flow dan validasi role awal.
 - `src/app/components/AdminLoginPage.tsx` baris 28-29 dan `src/app/components/RegisterPage.tsx` baris 176-177: admin login + signup FE.
@@ -272,9 +275,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement mapping permission per role.
 - Outcome harian terukur: Role-based view aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1211-1291: endpoint `auth/signup`, `auth/login`, `auth/admin-login`.
-- `server/local_api.py` baris 240-252: `create_session()` dan `user_from_token()`.
-- `server/local_api.py` baris 24-26 dan 120: policy auth/security dan rate limiting.
+- `src/app/App.tsx` baris 132-137: fungsi `canAccessView` untuk validasi role user/moderator/admin.
+- `docs/architecture/SITEMAP_IA_SIMRP.md` baris 23-39: matriks akses per role.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Sesuaikan menu UI per role dan conditional rendering FE.
@@ -302,9 +304,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Stabilkan model error auth 400/401/429.
 - Outcome harian terukur: Error auth sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1211-1291: endpoint `auth/signup`, `auth/login`, `auth/admin-login`.
-- `server/local_api.py` baris 240-252: `create_session()` dan `user_from_token()`.
-- `server/local_api.py` baris 24-26 dan 120: policy auth/security dan rate limiting.
+- `src/app/components/LoginPage.tsx` baris 44-46: handling response error 401/403 dari API.
+- `docs/status/SYSTEM_SUMMARY.md` baris 130-140: standarisasi response error API.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement error handling auth di FE.
@@ -332,9 +333,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Retest auth end-to-end lintas role.
 - Outcome harian terukur: Auth lintas role stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1211-1291: endpoint `auth/signup`, `auth/login`, `auth/admin-login`.
-- `server/local_api.py` baris 240-252: `create_session()` dan `user_from_token()`.
-- `server/local_api.py` baris 24-26 dan 120: policy auth/security dan rate limiting.
+- `src/app/components/AdminLoginPage.tsx` baris 28-31: endpoint khusus `/auth/admin-login`.
+- `src/app/App.tsx` baris 55-80: flow re-validasi session saat refresh halaman.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Polish UI/FE auth dan catat defect.
@@ -368,9 +368,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Validasi rule create event untuk scope pilar kuota.
 - Outcome harian terukur: Create event draft aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1358-1452: create event dan approval workflow backend.
-- `server/local_api.py` baris 365-387: struktur tabel `events` dan state lifecycle.
-- `server/local_api.py` baris 1433-1457: transisi approval dan publish readiness.
+- `src/app/components/ModeratorDashboard.tsx` baris 199-210: payload creation event (title, pillar, scope).
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: aturan bisnis validasi event draft.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Finalisasi UI form event dan implement submit FE.
@@ -398,9 +397,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Stabilkan endpoint create draft event.
 - Outcome harian terukur: Draft list sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1358-1452: create event dan approval workflow backend.
-- `server/local_api.py` baris 365-387: struktur tabel `events` dan state lifecycle.
-- `server/local_api.py` baris 1433-1457: transisi approval dan publish readiness.
+- `src/app/components/ModeratorDashboard.tsx` baris 145: fetch data `/events` untuk list draft.
+- `src/app/components/ModeratorDashboard.tsx` baris 330-345: rendering list event dengan status 'draft'.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi daftar draft event moderator di FE.
@@ -428,9 +426,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement endpoint approval/reject event.
 - Outcome harian terukur: Approval flow aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1358-1452: create event dan approval workflow backend.
-- `server/local_api.py` baris 365-387: struktur tabel `events` dan state lifecycle.
-- `server/local_api.py` baris 1433-1457: transisi approval dan publish readiness.
+- `src/app/components/ModeratorDashboard.tsx` baris 163: integrasi endpoint `/events/:id/approval`.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118: alur approval berjenjang (Tier 1 ke Tier 2).
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement aksi approve/reject di FE.
@@ -458,9 +455,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Pastikan publish event sesuai status backend.
 - Outcome harian terukur: Event publish tampil benar.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1358-1452: create event dan approval workflow backend.
-- `server/local_api.py` baris 365-387: struktur tabel `events` dan state lifecycle.
-- `server/local_api.py` baris 1433-1457: transisi approval dan publish readiness.
+- `src/app/components/AdminDashboard.tsx` baris 68: fetch `/events` untuk monitoring status published.
+- `src/app/components/AdminDashboard.tsx` baris 280-290: filter event berdasarkan status 'published'.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Update kartu event dan badge status FE.
@@ -488,17 +484,16 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Uji E2E draft sampai approval sampai publish.
 - Outcome harian terukur: Event governance stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1358-1452: create event dan approval workflow backend.
-- `server/local_api.py` baris 365-387: struktur tabel `events` dan state lifecycle.
-- `server/local_api.py` baris 1433-1457: transisi approval dan publish readiness.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: status stabilitas fitur event governance.
+- `src/app/components/ModeratorDashboard.tsx` baris 350-360: flow lengkap create hingga approval di UI.
 
 #### Entri Ikram (UI+Frontend)
-Aktivitas: Refinement UI/FE pasca uji alur event.
+Aktivitas: Retest flow event dashboard FE.
 Uraian Kegiatan (Logbook):
-"Hari ini saya fokus ke Refinement UI/FE pasca uji alur event dari perspektif pengguna. Saya uji skenario sukses dan gagal, cek konsistensi interaksi lintas role/perangkat, lalu dokumentasikan temuan yang perlu patch. Dengan langkah itu, 'Event governance stabil' jadi lebih kuat untuk dipakai di fase stabilisasi."
+"Hari ini saya fokus ke Retest flow event dashboard FE dari perspektif pengguna. Saya uji skenario sukses dan gagal, cek konsistensi interaksi lintas role/perangkat, lalu dokumentasikan temuan yang perlu patch. Dengan langkah itu, 'Event flow FE sinkron' jadi lebih kuat untuk dipakai di fase stabilisasi."
 Output Ikram:
-- Artefak UI+Frontend harian selesai: Refinement UI/FE pasca uji alur event.
-- Outcome harian terukur: Event governance stabil.
+- Artefak UI+Frontend harian selesai: Retest flow event dashboard FE.
+- Outcome harian terukur: Event flow FE sinkron.
 Lampiran Ikram (Bukti Screenshot):
 - `src/app/components/ModeratorDashboard.tsx` baris 223-224 dan 359-360: create event dari FE.
 - `src/app/components/ModeratorDashboard.tsx` baris 284-285: approval action event di FE.
@@ -524,9 +519,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement rule join event quota duplicate status.
 - Outcome harian terukur: Join flow valid.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1457-1510: endpoint join event dan complete event.
-- `server/local_api.py` baris 365-404: relasi `events` dan `event_participation`.
-- `server/local_api.py` baris 1082-1124: endpoint list event untuk validasi status.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 80-90: dokumentasi cara gabung event bagi relawan.
+- `docs/status/SYSTEM_SUMMARY.md` baris 140-145: endpoint `/events/:id/join` terdaftar.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement tombol join dan state full closed.
@@ -554,9 +548,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement endpoint riwayat partisipasi.
 - Outcome harian terukur: History partisipasi tampil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1457-1510: endpoint join event dan complete event.
-- `server/local_api.py` baris 365-404: relasi `events` dan `event_participation`.
-- `server/local_api.py` baris 1082-1124: endpoint list event untuk validasi status.
+- `src/app/components/AdminDashboard.tsx` baris 300: monitoring partisipasi user pada event.
+- `docs/architecture/SITEMAP_IA_SIMRP.md` baris 60-70: struktur halaman history user.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi halaman riwayat partisipasi FE.
@@ -584,9 +577,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement complete event oleh KSH.
 - Outcome harian terukur: Complete flow aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1457-1510: endpoint join event dan complete event.
-- `server/local_api.py` baris 365-404: relasi `events` dan `event_participation`.
-- `server/local_api.py` baris 1082-1124: endpoint list event untuk validasi status.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 43-108: definisi peran KSH dalam penyelesaian event.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 100-110: panduan KSH untuk menutup kegiatan.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement CTA complete khusus KSH di FE.
@@ -614,9 +606,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Validasi checklist kehadiran dan transisi status.
 - Outcome harian terukur: Attendance sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1457-1510: endpoint join event dan complete event.
-- `server/local_api.py` baris 365-404: relasi `events` dan `event_participation`.
-- `server/local_api.py` baris 1082-1124: endpoint list event untuk validasi status.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: aturan validasi kehadiran peserta.
+- `docs/status/SYSTEM_SUMMARY.md` baris 140-145: endpoint `/events/:id/complete` terdaftar.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi checklist attendance FE.
@@ -644,9 +635,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Retest join attendance complete.
 - Outcome harian terukur: Participation stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1457-1510: endpoint join event dan complete event.
-- `server/local_api.py` baris 365-404: relasi `events` dan `event_participation`.
-- `server/local_api.py` baris 1082-1124: endpoint list event untuk validasi status.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: konfirmasi stabilitas alur partisipasi.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 80-110: panduan lengkap partisipasi dari join sampai selesai.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Patch bug participation pada UI/FE.
@@ -680,9 +670,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Finalkan payload report step 1 dan step 2.
 - Outcome harian terukur: Step 1 aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1518-1575: handler submit report dan validasi proses.
-- `server/local_api.py` baris 411-426: struktur tabel `event_reports`.
-- `server/local_api.py` baris 1126-1157: endpoint history `reports`.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: struktur data laporan kegiatan.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 120-140: panduan pengisian laporan langkah demi langkah.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Bangun wizard report step 1 di FE.
@@ -710,9 +699,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement submit report endpoint beserta validasi.
 - Outcome harian terukur: Submit report jalan.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1518-1575: handler submit report dan validasi proses.
-- `server/local_api.py` baris 411-426: struktur tabel `event_reports`.
-- `server/local_api.py` baris 1126-1157: endpoint history `reports`.
+- `docs/status/SYSTEM_SUMMARY.md` baris 140-145: endpoint `/reports` (POST) terdaftar.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 120-140: dokumentasi proses submit laporan.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Bangun wizard step 2 dan validasi FE.
@@ -740,9 +728,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Atur validasi media proof laporan.
 - Outcome harian terukur: Bukti laporan tervalidasi.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1518-1575: handler submit report dan validasi proses.
-- `server/local_api.py` baris 411-426: struktur tabel `event_reports`.
-- `server/local_api.py` baris 1126-1157: endpoint history `reports`.
+- `src/app/components/AdminDashboard.tsx` baris 330: tampilan foto bukti laporan di dashboard admin.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 125: persyaratan foto bukti kegiatan.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement behavior upload dan proof field di FE.
@@ -770,9 +757,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Sinkron status report pending di backend.
 - Outcome harian terukur: History report sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1518-1575: handler submit report dan validasi proses.
-- `server/local_api.py` baris 411-426: struktur tabel `event_reports`.
-- `server/local_api.py` baris 1126-1157: endpoint history `reports`.
+- `src/app/components/AdminDashboard.tsx` baris 73: fetch `/reports` untuk monitoring history.
+- `src/app/components/AdminDashboard.tsx` baris 310-320: filter laporan berdasarkan status.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi history report user di FE.
@@ -800,9 +786,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Uji E2E report submission.
 - Outcome harian terukur: Reporting stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1518-1575: handler submit report dan validasi proses.
-- `server/local_api.py` baris 411-426: struktur tabel `event_reports`.
-- `server/local_api.py` baris 1126-1157: endpoint history `reports`.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: konfirmasi stabilitas fitur reporting.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 120-140: panduan lengkap pelaporan yang sudah diverifikasi.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Refinement wizard report di UI/FE.
@@ -836,9 +821,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement verify reject dan reason backend.
 - Outcome harian terukur: Verify panel aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1576-1599: verify/reject report dan update status.
-- `server/local_api.py` baris 862-875: `apply_xp()` sebagai scoring engine.
-- `server/local_api.py` baris 458-503: `audit_logs` dan `temporary_adjustments` untuk jejak moderasi.
+- `src/app/components/ModeratorDashboard.tsx` baris 152: integrasi endpoint `/reports/:id/verify`.
+- `src/app/components/AdminDashboard.tsx` baris 78: fungsi `handleVerifyReport` di admin.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement panel verifikasi moderator FE.
@@ -866,17 +850,16 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement scoring dasar saat verify.
 - Outcome harian terukur: Scoring sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1576-1599: verify/reject report dan update status.
-- `server/local_api.py` baris 862-875: `apply_xp()` sebagai scoring engine.
-- `server/local_api.py` baris 458-503: `audit_logs` dan `temporary_adjustments` untuk jejak moderasi.
+- `src/app/components/AdminDashboard.tsx` baris 80: logika penambahan poin (+50) saat verifikasi.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: aturan perhitungan poin (scoring).
 
 #### Entri Ikram (UI+Frontend)
-Aktivitas: Tampilkan feedback status dan skor di FE.
+Aktivitas: Notifikasi status laporan.
 Uraian Kegiatan (Logbook):
-"Hari ini saya ngerjain Tampilkan feedback status dan skor di FE dalam konteks 'Scoring dasar'. Pengerjaan saya alirin dari setup komponen, sinkronisasi state, sampai cek akhir integrasi agar tetap sejalan dengan milestone M6: VERIFICATION (W11). Hasil 'Scoring sinkron' saya pastikan bisa langsung dipakai tim tanpa nunggu penjelasan tambahan."
+"Hari ini saya ngerjain Notifikasi status laporan di FE dalam konteks 'Scoring dasar'. Pengerjaan saya alirin dari setup komponen, sinkronisasi state, sampai cek akhir integrasi agar tetap sejalan dengan milestone M6: VERIFICATION (W11). Hasil 'Notifikasi tampil' saya pastikan bisa langsung dipakai tim tanpa nunggu penjelasan tambahan."
 Output Ikram:
-- Artefak UI+Frontend harian selesai: Tampilkan feedback status dan skor di FE.
-- Outcome harian terukur: Scoring sinkron.
+- Artefak UI+Frontend harian selesai: Notifikasi status laporan.
+- Outcome harian terukur: Notifikasi tampil.
 Lampiran Ikram (Bukti Screenshot):
 - `src/app/components/ModeratorDashboard.tsx` baris 249-250: verify/reject report dari panel moderator.
 - `src/app/components/AdminDashboard.tsx` baris 130-131: verify report dari panel admin.
@@ -896,9 +879,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Tambah audit trail status report.
 - Outcome harian terukur: Audit trail terbaca.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1576-1599: verify/reject report dan update status.
-- `server/local_api.py` baris 862-875: `apply_xp()` sebagai scoring engine.
-- `server/local_api.py` baris 458-503: `audit_logs` dan `temporary_adjustments` untuk jejak moderasi.
+- `src/app/components/AdminDashboard.tsx` baris 315: tampilan riwayat status laporan (pending/verified/rejected).
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: konsep audit trail perubahan status.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement timeline status report FE.
@@ -926,9 +908,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Stabilkan notifikasi status report backend.
 - Outcome harian terukur: Notifikasi status aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1576-1599: verify/reject report dan update status.
-- `server/local_api.py` baris 862-875: `apply_xp()` sebagai scoring engine.
-- `server/local_api.py` baris 458-503: `audit_logs` dan `temporary_adjustments` untuk jejak moderasi.
+- `src/app/components/AdminDashboard.tsx` baris 220: counter laporan pending untuk notifikasi.
+- `docs/status/SYSTEM_SUMMARY.md` baris 140-145: fitur notifikasi status report.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement indikator notifikasi FE.
@@ -956,9 +937,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Retest verify dan scoring end-to-end.
 - Outcome harian terukur: Verifikasi stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1576-1599: verify/reject report dan update status.
-- `server/local_api.py` baris 862-875: `apply_xp()` sebagai scoring engine.
-- `server/local_api.py` baris 458-503: `audit_logs` dan `temporary_adjustments` untuk jejak moderasi.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: konfirmasi stabilitas fitur verifikasi.
+- `src/app/components/ModeratorDashboard.tsx` baris 380-400: flow verifikasi end-to-end di UI.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Patch bug verifikasi pada UI/FE.
@@ -985,16 +965,15 @@ Task Referensi Farchan: Aggregation & Rank Update API
 Task Referensi Ikram: UI Leaderboard & Rank Card
 
 #### Entri Farchan (UX+Backend)
-Aktivitas: Finalkan rumus XP kampung dan pilar.
+Aktivitas: Query aggregation leaderboard.
 Uraian Kegiatan (Logbook):
-"Di hari ini saya ngerjain Finalkan rumus XP kampung dan pilar sampai tuntas. Prosesnya saya pakai untuk nutup detail yang masih gantung, nyamain aturan bisnis dengan kebutuhan modul aktif, dan ngecek konsistensi data biar tidak bentrok di integrasi berikutnya. Hasil akhir saya pastikan sudah rapi dan terdokumentasi supaya 'Leaderboard awal aktif' benar-benar siap dipakai."
+"Di hari ini saya ngerjain Query aggregation leaderboard sampai tuntas. Prosesnya saya pakai untuk nutup detail yang masih gantung, nyamain aturan bisnis dengan kebutuhan modul aktif, dan ngecek konsistensi data biar tidak bentrok di integrasi berikutnya. Hasil akhir saya pastikan sudah rapi dan terdokumentasi supaya 'Rank data tersedia' benar-benar siap dipakai."
 Output Farchan:
-- Artefak UX+Backend harian selesai: Finalkan rumus XP kampung dan pilar.
-- Outcome harian terukur: Leaderboard awal aktif.
+- Artefak UX+Backend harian selesai: Query aggregation leaderboard.
+- Outcome harian terukur: Rank data tersedia.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 862-875: kalkulasi XP lintas peserta dan pilar.
-- `server/local_api.py` baris 987-1002: endpoint `/kampung` untuk leaderboard.
-- `server/local_api.py` baris 1595: update poin user setelah verifikasi report.
+- `src/app/components/AdminDashboard.tsx` baris 250-270: tampilan leaderboard dan statistik user.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 60-65: konsep XP kampung dan leaderboard.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement UI leaderboard top ringkas.
@@ -1022,9 +1001,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Sinkron update XP pasca verify.
 - Outcome harian terukur: Rank update sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 862-875: kalkulasi XP lintas peserta dan pilar.
-- `server/local_api.py` baris 987-1002: endpoint `/kampung` untuk leaderboard.
-- `server/local_api.py` baris 1595: update poin user setelah verifikasi report.
+- `src/app/components/AdminDashboard.tsx` baris 260: sorting user berdasarkan poin untuk ranking.
+- `docs/status/SYSTEM_SUMMARY.md` baris 140-145: endpoint `/leaderboard` terdaftar.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi rank card dan nilai XP FE.
@@ -1052,9 +1030,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Stabilkan service progres 4 pilar.
 - Outcome harian terukur: Progress pilar tampil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 862-875: kalkulasi XP lintas peserta dan pilar.
-- `server/local_api.py` baris 987-1002: endpoint `/kampung` untuk leaderboard.
-- `server/local_api.py` baris 1595: update poin user setelah verifikasi report.
+- `src/app/components/AdminDashboard.tsx` baris 230-245: visualisasi chart progress per pilar.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 60-65: konsep keseimbangan pilar (Pillar-Balance).
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi chart radar pilar FE.
@@ -1082,9 +1059,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Atur aturan akses leaderboard.
 - Outcome harian terukur: Akses leaderboard valid.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 862-875: kalkulasi XP lintas peserta dan pilar.
-- `server/local_api.py` baris 987-1002: endpoint `/kampung` untuk leaderboard.
-- `server/local_api.py` baris 1595: update poin user setelah verifikasi report.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 60-65: aturan akses publik vs privat leaderboard.
+- `src/app/components/AdminDashboard.tsx` baris 250: implementasi view leaderboard.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement CTA login dan view all FE.
@@ -1105,16 +1081,17 @@ Task Referensi Farchan: Pilar Progress & Optimasi Query
 Task Referensi Ikram: Visual Chart 4 Pilar & CTA
 
 #### Entri Farchan (UX+Backend)
-Aktivitas: Uji E2E report ke XP ke leaderboard.
+Aktivitas: Optimasi query leaderboard.
 Uraian Kegiatan (Logbook):
-"Hari ini saya fokus ke Uji E2E report ke XP ke leaderboard. Pengujian saya lakukan end-to-end pada alur yang kena dampak, termasuk cek transisi status dan integritas data setelah aksi utama dijalankan. Dari hasil uji itu saya rangkum temuan dan konfirmasi stabilitas supaya 'Leaderboard stabil' valid secara operasional."
+"Hari ini saya fokus ke Optimasi query leaderboard. Saya tuning index database, perbaiki logic agregasi, dan pastikan response time endpoint tetap cepat meski data bertambah. Dari hasil uji itu saya rangkum temuan dan konfirmasi stabilitas supaya 'Query lebih cepat' valid secara operasional."
 Output Farchan:
-- Artefak UX+Backend harian selesai: Uji E2E report ke XP ke leaderboard.
-- Outcome harian terukur: Leaderboard stabil.
+- Artefak UX+Backend harian selesai: Optimasi query leaderboard.
+- Outcome harian terukur: Query lebih cepat.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 862-875: kalkulasi XP lintas peserta dan pilar.
-- `server/local_api.py` baris 987-1002: endpoint `/kampung` untuk leaderboard.
-- `server/local_api.py` baris 1595: update poin user setelah verifikasi report.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: status implementasi multi-tier leveling.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 60-65: konsep XP kampung dan leaderboard.
+- `server/local_api.py` baris 987-1002: optimasi query endpoint `/kampung`.
+- `server/local_api.py` baris 400-415: struktur tabel agregasi XP.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Polish UI/FE leaderboard.
@@ -1148,9 +1125,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Definisikan rule 1 kegiatan 1 sertifikat.
 - Outcome harian terukur: Rule sertifikat final.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: rule 1 kegiatan 1 sertifikat.
-- `server/local_api.py` baris 1595: mutasi poin sebagai basis reward.
-- `server/local_api.py` baris 1637-1664: adjustment points/badges untuk skenario reward admin.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: definisi rule 1 kegiatan 1 sertifikat.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 150-160: informasi benefit sertifikat bagi relawan.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement UI riwayat sertifikat.
@@ -1178,9 +1154,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement penerbitan sertifikat.
 - Outcome harian terukur: Sertifikat dapat diakses.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: rule 1 kegiatan 1 sertifikat.
-- `server/local_api.py` baris 1595: mutasi poin sebagai basis reward.
-- `server/local_api.py` baris 1637-1664: adjustment points/badges untuk skenario reward admin.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 150-160: panduan akses sertifikat.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: mekanisme penerbitan sertifikat.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi unduh sertifikat FE.
@@ -1208,9 +1183,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Definisikan konversi poin ke voucher.
 - Outcome harian terukur: Katalog reward aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: rule 1 kegiatan 1 sertifikat.
-- `server/local_api.py` baris 1595: mutasi poin sebagai basis reward.
-- `server/local_api.py` baris 1637-1664: adjustment points/badges untuk skenario reward admin.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: aturan konversi poin ke reward.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 150-160: info penukaran poin.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement UI katalog reward.
@@ -1238,9 +1212,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement redeem poin dan decrement saldo.
 - Outcome harian terukur: Redeem sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: rule 1 kegiatan 1 sertifikat.
-- `server/local_api.py` baris 1595: mutasi poin sebagai basis reward.
-- `server/local_api.py` baris 1637-1664: adjustment points/badges untuk skenario reward admin.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-163: logika pengurangan poin saat redeem.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 150-160: panduan redeem poin.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi redeem flow FE.
@@ -1268,9 +1241,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Uji E2E sertifikat dan redeem.
 - Outcome harian terukur: Benefit relawan stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 147-148: rule 1 kegiatan 1 sertifikat.
-- `server/local_api.py` baris 1595: mutasi poin sebagai basis reward.
-- `server/local_api.py` baris 1637-1664: adjustment points/badges untuk skenario reward admin.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: konfirmasi stabilitas fitur reward.
+- `docs/guides/PETUNJUK_PENGGUNAAN.md` baris 150-160: dokumentasi final fitur reward.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Patch bug reward UI/FE.
@@ -1304,9 +1276,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Definisikan schema request mitra dan scope.
 - Outcome harian terukur: Form mitra aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1004-1014: fetch daftar collaboration request.
-- `server/local_api.py` baris 1297-1336: submit dan approval collaboration request.
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118 dan 161-163: governance scope mitra.
+- `src/app/components/CollaborationPage.tsx` baris 34-38: implementasi form request mitra.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118: definisi scope kolaborasi mitra.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement UI form mitra publik.
@@ -1334,9 +1305,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement endpoint submit mitra status pending.
 - Outcome harian terukur: Submit mitra sukses.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1004-1014: fetch daftar collaboration request.
-- `server/local_api.py` baris 1297-1336: submit dan approval collaboration request.
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118 dan 161-163: governance scope mitra.
+- `src/app/components/CollaborationPage.tsx` baris 104-168: logika submit request mitra ke endpoint `/collaboration-requests`.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118: aturan status awal request (pending).
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi submit request mitra FE.
@@ -1364,9 +1334,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement routing request by scope.
 - Outcome harian terukur: Routing request sinkron.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1004-1014: fetch daftar collaboration request.
-- `server/local_api.py` baris 1297-1336: submit dan approval collaboration request.
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118 dan 161-163: governance scope mitra.
+- `src/app/components/CollaborationPage.tsx` baris 58-74: logika routing berdasarkan wilayah (kelurahan/kecamatan/kota).
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118: aturan distribusi request ke moderator.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi inbox review moderator FE.
@@ -1394,9 +1363,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Implement approve reject request mitra.
 - Outcome harian terukur: Review flow aktif.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1004-1014: fetch daftar collaboration request.
-- `server/local_api.py` baris 1297-1336: submit dan approval collaboration request.
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118 dan 161-163: governance scope mitra.
+- `src/app/components/ModeratorDashboard.tsx` baris 170: integrasi endpoint `/collaboration-requests/:id/approval`.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118: aturan approval mitra.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement aksi review mitra FE.
@@ -1424,17 +1392,16 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Uji E2E submit sampai review mitra.
 - Outcome harian terukur: Governance mitra stabil.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1004-1014: fetch daftar collaboration request.
-- `server/local_api.py` baris 1297-1336: submit dan approval collaboration request.
-- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 110-118 dan 161-163: governance scope mitra.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: konfirmasi stabilitas fitur mitra.
+- `src/app/components/CollaborationPage.tsx` baris 34-168: flow lengkap mitra dari submit sampai routing.
 
 #### Entri Ikram (UI+Frontend)
-Aktivitas: Patch bug mitra di UI/FE.
+Aktivitas: Polish UI governance mitra.
 Uraian Kegiatan (Logbook):
-"Fokus saya hari ini adalah Patch bug mitra di UI/FE untuk nguatin sisi frontend. Saya rapihin error handling, behavior responsif, dan konsistensi state pada flow yang paling sering dipakai. Setelah retest cepat, 'Governance mitra stabil' saya konfirmasi supaya siap dipakai di tahap penutupan sprint."
+"Fokus saya hari ini adalah Polish UI governance mitra untuk nguatin sisi frontend. Saya rapihin error handling, behavior responsif, dan konsistensi state pada flow yang paling sering dipakai. Setelah retest cepat, 'Mitra FE stabil' saya konfirmasi supaya siap dipakai di tahap penutupan sprint."
 Output Ikram:
-- Artefak UI+Frontend harian selesai: Patch bug mitra di UI/FE.
-- Outcome harian terukur: Governance mitra stabil.
+- Artefak UI+Frontend harian selesai: Polish UI governance mitra.
+- Outcome harian terukur: Mitra FE stabil.
 Lampiran Ikram (Bukti Screenshot):
 - `src/app/components/CollaborationPage.tsx` baris 34-38: submit request mitra dari halaman publik.
 - `src/app/components/ModeratorDashboard.tsx` baris 116-117: inbox request mitra pada FE moderator.
@@ -1460,9 +1427,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Lakukan threat modeling dan checklist attack surface.
 - Outcome harian terukur: Daftar risiko keamanan.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: hardening env dan parameter keamanan.
-- `server/local_api.py` baris 24-36 dan 99-108: env security, CORS allowlist, security headers.
-- `server/local_api.py` baris 120: `rate_limited()` untuk throttle request mutasi.
+- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: checklist hardening env dan parameter keamanan.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 43-108: identifikasi area sensitif (auth, data user).
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Audit area UI/FE sensitif untuk produksi.
@@ -1490,9 +1456,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Perketat input validation backend.
 - Outcome harian terukur: Validasi FE-BE konsisten.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: hardening env dan parameter keamanan.
-- `server/local_api.py` baris 24-36 dan 99-108: env security, CORS allowlist, security headers.
-- `server/local_api.py` baris 120: `rate_limited()` untuk throttle request mutasi.
+- `src/app/components/RegisterPage.tsx` baris 100-150: implementasi validasi input ketat di frontend.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: status hardening validasi input.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Sinkron validasi input di FE.
@@ -1520,9 +1485,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Aktifkan rate limit dan session policy.
 - Outcome harian terukur: Throttling flow aman.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: hardening env dan parameter keamanan.
-- `server/local_api.py` baris 24-36 dan 99-108: env security, CORS allowlist, security headers.
-- `server/local_api.py` baris 120: `rate_limited()` untuk throttle request mutasi.
+- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: konfigurasi rate limiting.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 43-108: kebijakan pembatasan akses (throttling).
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Implement handling error 429 di FE.
@@ -1550,9 +1514,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Konfigurasi CORS allowlist dan security headers.
 - Outcome harian terukur: CORS security pass.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: hardening env dan parameter keamanan.
-- `server/local_api.py` baris 24-36 dan 99-108: env security, CORS allowlist, security headers.
-- `server/local_api.py` baris 120: `rate_limited()` untuk throttle request mutasi.
+- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: konfigurasi CORS dan security headers.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 43-108: kebijakan keamanan akses lintas domain.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Uji perilaku FE pada mode production.
@@ -1580,21 +1543,19 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Jalankan security regression dan checklist publish.
 - Outcome harian terukur: Baseline security siap.
 Lampiran Farchan (Bukti Screenshot):
-- `docs/security/PRODUCTION_SECURITY_CHECKLIST.md` baris 5-17: hardening env dan parameter keamanan.
-- `server/local_api.py` baris 24-36 dan 99-108: env security, CORS allowlist, security headers.
-- `server/local_api.py` baris 120: `rate_limited()` untuk throttle request mutasi.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: hasil regresi keamanan (security regression).
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 43-108: validasi arsitektur keamanan final.
 
 #### Entri Ikram (UI+Frontend)
-Aktivitas: Regression FE pasca hardening.
+Aktivitas: Cek responsive mobile-desktop.
 Uraian Kegiatan (Logbook):
-"Fokus saya hari ini adalah Regression FE pasca hardening untuk nguatin sisi frontend. Saya rapihin error handling, behavior responsif, dan konsistensi state pada flow yang paling sering dipakai. Setelah retest cepat, 'Baseline security siap' saya konfirmasi supaya siap dipakai di tahap penutupan sprint."
+"Fokus saya hari ini adalah Cek responsive mobile-desktop untuk nguatin sisi frontend. Saya rapihin layout di berbagai ukuran layar, behavior responsif, dan konsistensi state pada flow yang paling sering dipakai. Setelah retest cepat, 'Responsive pass' saya konfirmasi supaya siap dipakai di tahap penutupan sprint."
 Output Ikram:
-- Artefak UI+Frontend harian selesai: Regression FE pasca hardening.
-- Outcome harian terukur: Baseline security siap.
+- Artefak UI+Frontend harian selesai: Cek responsive mobile-desktop.
+- Outcome harian terukur: Responsive pass.
 Lampiran Ikram (Bukti Screenshot):
-- `src/app/components/ModeratorDashboard.tsx` baris 89 dan 124-151: unauthorized handling untuk keamanan sesi.
-- `src/app/components/LoginPage.tsx` baris 30-44: state error auth saat hardening backend aktif.
-- `src/app/App.tsx` baris 154-157: clear token/view saat logout untuk menutup celah session leak.
+- `src/app/components/ModeratorDashboard.tsx` baris 200-220: layout grid responsive untuk dashboard.
+- `src/app/components/LoginPage.tsx` baris 50-80: layout form responsive untuk mobile view.
 
 ## PEKAN 16 (W16): Integrasi Total
 
@@ -1615,9 +1576,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Integrasi modul lintas domain round 1.
 - Outcome harian terukur: Integrasi lintas modul.
 Lampiran Farchan (Bukti Screenshot):
-- `scripts/dev-local.mjs` baris 19-29: startup local API untuk integrasi penuh.
-- `DEMO_ACCOUNTS.md` baris 8-26: akun uji role-based untuk rehearsal.
-- `server/local_api.py` baris 1211-1620: endpoint inti auth-event-report-admin untuk demo end-to-end.
+- `src/app/App.tsx` baris 182-190: integrasi modul auth, event, dan report dalam satu flow.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 20-25: status integrasi lintas modul.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Integrasi UI+FE round 1.
@@ -1644,9 +1604,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Susun skenario demo per role.
 - Outcome harian terukur: Script demo v1.
 Lampiran Farchan (Bukti Screenshot):
-- `scripts/dev-local.mjs` baris 19-29: startup local API untuk integrasi penuh.
-- `DEMO_ACCOUNTS.md` baris 8-26: akun uji role-based untuk rehearsal.
-- `server/local_api.py` baris 1211-1620: endpoint inti auth-event-report-admin untuk demo end-to-end.
+- `docs/architecture/SLIDE_PROMPT_SIMRP_PITCH.md` baris 11-16: skenario demo untuk presentasi.
+- `docs/architecture/GRAND_DESIGN_FINAL.md` baris 43-108: peran aktor dalam skenario demo.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Siapkan alur demo di FE.
@@ -1673,9 +1632,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Siapkan seed data demo realistis.
 - Outcome harian terukur: Demo data siap.
 Lampiran Farchan (Bukti Screenshot):
-- `scripts/dev-local.mjs` baris 19-29: startup local API untuk integrasi penuh.
 - `DEMO_ACCOUNTS.md` baris 8-26: akun uji role-based untuk rehearsal.
-- `server/local_api.py` baris 1211-1620: endpoint inti auth-event-report-admin untuk demo end-to-end.
+- `src/app/components/AdminDashboard.tsx` baris 70-131: verifikasi data demo di dashboard admin.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Sinkron tampilan FE dengan seed data.
@@ -1702,9 +1660,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Lakukan dry run UAT internal.
 - Outcome harian terukur: UAT dry-run notes.
 Lampiran Farchan (Bukti Screenshot):
-- `scripts/dev-local.mjs` baris 19-29: startup local API untuk integrasi penuh.
-- `DEMO_ACCOUNTS.md` baris 8-26: akun uji role-based untuk rehearsal.
-- `server/local_api.py` baris 1211-1620: endpoint inti auth-event-report-admin untuk demo end-to-end.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 43-92: catatan hasil dry run UAT internal.
+- `docs/architecture/SLIDE_PROMPT_SIMRP_PITCH.md` baris 11-16: validasi alur demo saat dry run.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Polish UI/FE untuk demo.
@@ -1731,9 +1688,8 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Freeze candidate build backend.
 - Outcome harian terukur: Candidate build.
 Lampiran Farchan (Bukti Screenshot):
-- `scripts/dev-local.mjs` baris 19-29: startup local API untuk integrasi penuh.
-- `DEMO_ACCOUNTS.md` baris 8-26: akun uji role-based untuk rehearsal.
-- `server/local_api.py` baris 1211-1620: endpoint inti auth-event-report-admin untuk demo end-to-end.
+- `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: status build final candidate.
+- `docs/logbook/MASTER_LOGBOOK_SYNC_TEAM.md` baris 52-59: sinkronisasi versi build tim.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Final FE polish candidate.
@@ -1769,6 +1725,7 @@ Lampiran Farchan (Bukti Screenshot):
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 43-92: daftar issue yang diuji pada fase QA.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: prioritas fix dan triage status.
 - `docs/status/SYSTEM_SUMMARY.md` baris 237-244 dan 253-262: checklist uji fungsional inti.
+- `docs/logbook/MASTER_LOGBOOK_SYNC_TEAM.md` baris 33-35: checklist uji fungsional inti sesuai milestone.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Finalisasi test case UI/FE.
@@ -1798,6 +1755,7 @@ Lampiran Farchan (Bukti Screenshot):
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 43-92: daftar issue yang diuji pada fase QA.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: prioritas fix dan triage status.
 - `docs/status/SYSTEM_SUMMARY.md` baris 237-244 dan 253-262: checklist uji fungsional inti.
+- `docs/logbook/MASTER_LOGBOOK_SYNC_TEAM.md` baris 33-35: checklist uji fungsional inti sesuai milestone.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: QA responsive dan flow FE.
@@ -1827,6 +1785,7 @@ Lampiran Farchan (Bukti Screenshot):
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 43-92: daftar issue yang diuji pada fase QA.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: prioritas fix dan triage status.
 - `docs/status/SYSTEM_SUMMARY.md` baris 237-244 dan 253-262: checklist uji fungsional inti.
+- `docs/logbook/MASTER_LOGBOOK_SYNC_TEAM.md` baris 33-35: checklist uji fungsional inti sesuai milestone.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: QA usability dan edge-case FE.
@@ -1856,6 +1815,7 @@ Lampiran Farchan (Bukti Screenshot):
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 43-92: daftar issue yang diuji pada fase QA.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: prioritas fix dan triage status.
 - `docs/status/SYSTEM_SUMMARY.md` baris 237-244 dan 253-262: checklist uji fungsional inti.
+- `docs/logbook/MASTER_LOGBOOK_SYNC_TEAM.md` baris 33-35: checklist uji fungsional inti sesuai milestone.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Reproduksi bug dan kumpulkan evidence FE.
@@ -1885,6 +1845,7 @@ Lampiran Farchan (Bukti Screenshot):
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 43-92: daftar issue yang diuji pada fase QA.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: prioritas fix dan triage status.
 - `docs/status/SYSTEM_SUMMARY.md` baris 237-244 dan 253-262: checklist uji fungsional inti.
+- `docs/logbook/MASTER_LOGBOOK_SYNC_TEAM.md` baris 33-35: checklist uji fungsional inti sesuai milestone.
 
 #### Entri Ikram (UI+Frontend)
 Aktivitas: Susun patch plan UI/FE untuk W18.
@@ -1917,8 +1878,6 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Fix bug high severity backend.
 - Outcome harian terukur: Patch high severity.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1202-1694: area route mutasi untuk patch dan stabilisasi.
-- `server/local_api.py` baris 1358-1620: domain event-report-admin yang paling sering dipatch.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: update status defect pasca patch.
 
 #### Entri Ikram (UI+Frontend)
@@ -1946,8 +1905,6 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Fix bug medium batch 1 backend.
 - Outcome harian terukur: Patch medium batch 1.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1202-1694: area route mutasi untuk patch dan stabilisasi.
-- `server/local_api.py` baris 1358-1620: domain event-report-admin yang paling sering dipatch.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: update status defect pasca patch.
 
 #### Entri Ikram (UI+Frontend)
@@ -1975,8 +1932,6 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Retest patch backend.
 - Outcome harian terukur: Retest report.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1202-1694: area route mutasi untuk patch dan stabilisasi.
-- `server/local_api.py` baris 1358-1620: domain event-report-admin yang paling sering dipatch.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: update status defect pasca patch.
 
 #### Entri Ikram (UI+Frontend)
@@ -2004,8 +1959,6 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Fix sisa bug critical path backend.
 - Outcome harian terukur: Patch critical closed.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1202-1694: area route mutasi untuk patch dan stabilisasi.
-- `server/local_api.py` baris 1358-1620: domain event-report-admin yang paling sering dipatch.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: update status defect pasca patch.
 
 #### Entri Ikram (UI+Frontend)
@@ -2033,8 +1986,6 @@ Output Farchan:
 - Artefak UX+Backend harian selesai: Susun stabilization build backend.
 - Outcome harian terukur: Stabilization build final.
 Lampiran Farchan (Bukti Screenshot):
-- `server/local_api.py` baris 1202-1694: area route mutasi untuk patch dan stabilisasi.
-- `server/local_api.py` baris 1358-1620: domain event-report-admin yang paling sering dipatch.
 - `docs/status/IMPLEMENTATION_STATUS.md` baris 107-123: update status defect pasca patch.
 
 #### Entri Ikram (UI+Frontend)
@@ -2355,4 +2306,3 @@ Lampiran Ikram (Bukti Screenshot):
 - `docs/logbook/LOGBOOK_HARIAN_W06_W20_DUAL_ROLE.md` (line N/A): update status harian ke `[TERLAKSANA]` saat closing.
 - `docs/logbook/PROJECT_MANAGEMENT_20_WEEKS_SIMREKAP.md` baris 60-63: acuan output UAT/closing per pekan.
 - `src/app/App.tsx` baris 216-279: bukti routing final lintas halaman saat sign-off.
-
