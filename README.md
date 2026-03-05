@@ -1,7 +1,7 @@
 ﻿<div align="center">
 
-# SIMRP
-### Sistem Informasi Manajemen Relawan Kampung Pancasila
+# SIMREKAP
+### Sistem Informasi Manajemen RElawan KAmpung Pancasila
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org)
