@@ -16,12 +16,12 @@ function startProcess(command, args, label) {
 
 const apiCandidates = isWindows
   ? [
-      ["python", ["server/local_api.py"]],
-      ["py", ["-3", "server/local_api.py"]],
+      ["python", ["-m", "uvicorn", "server.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"]],
+      ["py", ["-3", "-m", "uvicorn", "server.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"]],
     ]
   : [
-      ["python3", ["server/local_api.py"]],
-      ["python", ["server/local_api.py"]],
+      ["python3", ["-m", "uvicorn", "server.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"]],
+      ["python", ["-m", "uvicorn", "server.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"]],
     ];
 
 let apiProc = null;

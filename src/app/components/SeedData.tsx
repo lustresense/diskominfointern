@@ -11,7 +11,7 @@ export function useSeedData() {
       } catch {
         // Local API may not be running yet.
       } finally {
-        // Seeding is handled by local_api.py (SQLite), not frontend.
+        // Seeding is handled by backend FastAPI + SQLite, not frontend.
         setSeeded(true);
       }
     };

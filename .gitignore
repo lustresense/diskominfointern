@@ -1,10 +1,42 @@
-.env.local
-.env.*
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
 dist/
-database/*
-!database/backups/
-!database/backups/*.sql
-!database/backups/*.db
-server/__pycache__/
-docs/logbook/logbook.md
+build/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Environment variables - JANGAN PERNAH COMMIT
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Logs
+*.log
+vite.log
+npm-debug.log*
+
+# Database runtime (SQLite)
+database/runtime/
+*.db
+*.db-shm
+*.db-wal
+
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Editor/OS
+.DS_Store
+.vscode/settings.json
+*.swp
+Thumbs.db
+
+# Temporary
+*.tmp

@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "api": "python server/local_api.py",
+    "api": "python -m uvicorn server.main:app --reload --host 127.0.0.1 --port 8000",
     "build": "vite build",
     "dev:web": "vite",
     "dev": "node scripts/dev-local.mjs",

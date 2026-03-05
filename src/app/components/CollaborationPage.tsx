@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Handshake, Home, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Handshake, Home, Search, Sparkles } from "lucide-react";
+
+import { geographicData } from "@/data/geographicData";
 import { apiPublicGet, apiPublicPost } from "@/lib/api";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -19,7 +21,9 @@ interface CollaborationForm {
   supportType: "dana" | "konsumsi" | "peralatan" | "media_partner" | "lainnya";
   contributionScope: "kota" | "kecamatan" | "kelurahan";
   kecamatanId: string;
+  kecamatanName: string;
   kelurahanId: string;
+  kelurahanName: string;
   supportDescription: string;
 }
 
@@ -34,6 +38,26 @@ interface GeoKecamatan {
   name: string;
   kelurahan: GeoKelurahan[];
 }
+
+interface LocalKelurahan {
+  code: string;
+  name: string;
+}
+
+interface LocalKecamatan {
+  code: string;
+  name: string;
+  kelurahan: LocalKelurahan[];
+}
+
+interface KelurahanSuggestion {
+  name: string;
+  kecamatanName: string;
+}
+
+type FocusedGeoField = "kecamatan" | "kelurahan" | null;
+
+const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
 
 const supportOptions: Array<{ value: CollaborationForm["supportType"]; label: string }> = [
   { value: "dana", label: "Sponsorship & Pendanaan" },
@@ -50,7 +74,9 @@ const initialForm: CollaborationForm = {
   supportType: "dana",
   contributionScope: "kota",
   kecamatanId: "",
+  kecamatanName: "",
   kelurahanId: "",
+  kelurahanName: "",
   supportDescription: "",
 };
 
@@ -58,7 +84,23 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<CollaborationForm>(initialForm);
   const [geoOptions, setGeoOptions] = useState<GeoKecamatan[]>([]);
+  const [focusedGeoField, setFocusedGeoField] = useState<FocusedGeoField>(null);
   const [receipt, setReceipt] = useState<{ requestId: string; submittedAt: string } | null>(null);
+
+  const localGeoOptions = useMemo<LocalKecamatan[]>(
+    () =>
+      geographicData.kecamatan
+        .map((kecamatan) => ({
+          code: kecamatan.kode,
+          name: kecamatan.nama,
+          kelurahan: kecamatan.kelurahan.map((kelurahan) => ({
+            code: kelurahan.kode,
+            name: kelurahan.nama,
+          })),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, "id")),
+    [],
+  );
 
   const formattedDate = useMemo(() => {
     const source = receipt?.submittedAt ? new Date(receipt.submittedAt) : new Date();
@@ -69,13 +111,61 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const resolveApiIds = (kecamatanName: string, kelurahanName?: string) => {
+    const apiKecamatan = geoOptions.find((item) => normalize(item.name) === normalize(kecamatanName));
+    if (!apiKecamatan) {
+      return { kecamatanId: "", kelurahanId: "" };
+    }
+    if (!kelurahanName) {
+      return { kecamatanId: String(apiKecamatan.id), kelurahanId: "" };
+    }
+    const apiKelurahan = apiKecamatan.kelurahan.find((item) => normalize(item.name) === normalize(kelurahanName));
+    return {
+      kecamatanId: String(apiKecamatan.id),
+      kelurahanId: apiKelurahan ? String(apiKelurahan.id) : "",
+    };
+  };
+
+  const pickKecamatan = (rawName: string) => {
+    const exact = localGeoOptions.find((item) => normalize(item.name) === normalize(rawName));
+    const name = exact ? exact.name : rawName;
+    const ids = resolveApiIds(name);
+    setForm((prev) => ({
+      ...prev,
+      kecamatanName: name,
+      kecamatanId: ids.kecamatanId,
+      kelurahanName: "",
+      kelurahanId: "",
+    }));
+  };
+
+  const pickKelurahan = (suggestion: KelurahanSuggestion) => {
+    const ids = resolveApiIds(suggestion.kecamatanName, suggestion.name);
+    setForm((prev) => ({
+      ...prev,
+      kecamatanName: suggestion.kecamatanName,
+      kecamatanId: ids.kecamatanId,
+      kelurahanName: suggestion.name,
+      kelurahanId: ids.kelurahanId,
+    }));
+  };
+
+  const closeGeoSuggestions = () => {
+    setTimeout(() => {
+      const activeId = (document.activeElement as HTMLElement | null)?.id;
+      if (activeId !== "collab-kecamatan" && activeId !== "collab-kelurahan") {
+        setFocusedGeoField(null);
+      }
+    }, 120);
+  };
+
   useEffect(() => {
     const loadGeo = async () => {
       try {
         const data = await apiPublicGet<{ kecamatan: GeoKecamatan[] }>("/geo/options");
         setGeoOptions(Array.isArray(data?.kecamatan) ? data.kecamatan : []);
       } catch {
-        // Optional data, form tetap bisa dipakai untuk skala kota.
+        // Tetap gunakan geographicData.ts sebagai sumber pencarian nama.
       }
     };
     loadGeo();
@@ -83,30 +173,85 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
 
   useEffect(() => {
     if (form.contributionScope === "kota") {
-      setForm((prev) => ({ ...prev, kecamatanId: "", kelurahanId: "" }));
+      setForm((prev) => ({
+        ...prev,
+        kecamatanId: "",
+        kecamatanName: "",
+        kelurahanId: "",
+        kelurahanName: "",
+      }));
       return;
     }
     if (form.contributionScope === "kecamatan") {
-      setForm((prev) => ({ ...prev, kelurahanId: "" }));
+      setForm((prev) => ({ ...prev, kelurahanId: "", kelurahanName: "" }));
     }
   }, [form.contributionScope]);
 
-  const selectedKecamatan = useMemo(
-    () => geoOptions.find((item) => String(item.id) === form.kecamatanId),
-    [geoOptions, form.kecamatanId],
+  const selectedLocalKecamatan = useMemo(
+    () => localGeoOptions.find((item) => normalize(item.name) === normalize(form.kecamatanName)) || null,
+    [form.kecamatanName, localGeoOptions],
   );
-  const kelurahanOptions = selectedKecamatan?.kelurahan || [];
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (form.contributionScope !== "kota" && !form.kecamatanId) {
-      toast.error("Pilih kecamatan untuk skala kontribusi ini.");
-      return;
+  const kecamatanSuggestions = useMemo(() => {
+    const query = normalize(form.kecamatanName);
+    const rows = query
+      ? localGeoOptions.filter((item) => normalize(item.name).includes(query))
+      : localGeoOptions;
+    return rows.slice(0, 50);
+  }, [form.kecamatanName, localGeoOptions]);
+
+  const kelurahanSuggestions = useMemo(() => {
+    const query = normalize(form.kelurahanName);
+    const rows: KelurahanSuggestion[] = [];
+
+    if (selectedLocalKecamatan) {
+      for (const kelurahan of selectedLocalKecamatan.kelurahan) {
+        if (query && !normalize(kelurahan.name).includes(query)) {
+          continue;
+        }
+        rows.push({ name: kelurahan.name, kecamatanName: selectedLocalKecamatan.name });
+      }
+      return rows.slice(0, 80);
     }
-    if (form.contributionScope === "kelurahan" && !form.kelurahanId) {
-      toast.error("Pilih kelurahan untuk skala kelurahan.");
-      return;
+
+    const kecQuery = normalize(form.kecamatanName);
+    for (const kecamatan of localGeoOptions) {
+      if (kecQuery && !normalize(kecamatan.name).includes(kecQuery)) {
+        continue;
+      }
+      for (const kelurahan of kecamatan.kelurahan) {
+        if (query && !normalize(kelurahan.name).includes(query)) {
+          continue;
+        }
+        rows.push({ name: kelurahan.name, kecamatanName: kecamatan.name });
+      }
     }
+    return rows.slice(0, 80);
+  }, [form.kecamatanName, form.kelurahanName, localGeoOptions, selectedLocalKecamatan]);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    let matchedKecamatan: LocalKecamatan | null = null;
+    if (form.contributionScope !== "kota") {
+      matchedKecamatan =
+        localGeoOptions.find((item) => normalize(item.name) === normalize(form.kecamatanName)) || null;
+      if (!matchedKecamatan) {
+        toast.error("Kecamatan tidak valid. Gunakan tombol Cari atau pilih dari daftar.");
+        return;
+      }
+    }
+
+    if (form.contributionScope === "kelurahan") {
+      const matchedKelurahan = matchedKecamatan?.kelurahan.find(
+        (item) => normalize(item.name) === normalize(form.kelurahanName),
+      );
+      if (!matchedKelurahan) {
+        toast.error("Kelurahan tidak valid untuk kecamatan yang dipilih.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const payload = {
@@ -117,6 +262,8 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
         contributionScope: form.contributionScope,
         kecamatanId: form.kecamatanId ? Number(form.kecamatanId) : null,
         kelurahanId: form.kelurahanId ? Number(form.kelurahanId) : null,
+        kecamatanName: form.kecamatanName.trim() || null,
+        kelurahanName: form.kelurahanName.trim() || null,
         supportDescription: form.supportDescription,
       };
       const data = await apiPublicPost<any>("/collaboration-requests", payload);
@@ -251,7 +398,7 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                       <Input
                         id="org_name"
                         value={form.organizationName}
-                        onChange={(e) => updateField("organizationName", e.target.value)}
+                        onChange={(event) => updateField("organizationName", event.target.value)}
                         placeholder="Contoh: Komunitas Surabaya Hebat"
                         className="h-11 rounded-xl border-slate-200 bg-slate-50"
                         required
@@ -264,7 +411,7 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                       <Input
                         id="pic_name"
                         value={form.picName}
-                        onChange={(e) => updateField("picName", e.target.value)}
+                        onChange={(event) => updateField("picName", event.target.value)}
                         placeholder="Nama penanggung jawab"
                         className="h-11 rounded-xl border-slate-200 bg-slate-50"
                         required
@@ -280,7 +427,7 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                       id="email"
                       type="email"
                       value={form.email}
-                      onChange={(e) => updateField("email", e.target.value)}
+                      onChange={(event) => updateField("email", event.target.value)}
                       placeholder="nama@organisasi.id"
                       className="h-11 rounded-xl border-slate-200 bg-slate-50"
                       required
@@ -294,7 +441,7 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                     <select
                       id="support_type"
                       value={form.supportType}
-                      onChange={(e) => updateField("supportType", e.target.value as CollaborationForm["supportType"])}
+                      onChange={(event) => updateField("supportType", event.target.value as CollaborationForm["supportType"])}
                       className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800"
                       required
                     >
@@ -313,7 +460,7 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                     <select
                       id="contribution_scope"
                       value={form.contributionScope}
-                      onChange={(e) => updateField("contributionScope", e.target.value as CollaborationForm["contributionScope"])}
+                      onChange={(event) => updateField("contributionScope", event.target.value as CollaborationForm["contributionScope"])}
                       className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800"
                     >
                       <option value="kota">Kota</option>
@@ -323,50 +470,142 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                   </div>
 
                   {form.contributionScope !== "kota" && (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="kecamatan_id" className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    <div className="space-y-2">
+                      <Label htmlFor="collab-kecamatan" className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Kecamatan
                       </Label>
-                      <select
-                        id="kecamatan_id"
-                        value={form.kecamatanId}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, kecamatanId: e.target.value, kelurahanId: "" }))
-                        }
-                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800"
-                        required
-                      >
-                        <option value="">Pilih kecamatan</option>
-                        {geoOptions.map((kecamatan) => (
-                          <option key={kecamatan.id} value={kecamatan.id}>
-                            {kecamatan.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <Input
+                          id="collab-kecamatan"
+                          value={form.kecamatanName}
+                          onChange={(event) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              kecamatanName: event.target.value,
+                              kecamatanId: "",
+                              kelurahanName: "",
+                              kelurahanId: "",
+                            }));
+                          }}
+                          onFocus={() => setFocusedGeoField("kecamatan")}
+                          onBlur={closeGeoSuggestions}
+                          placeholder="Ketik nama kecamatan"
+                          autoComplete="off"
+                          className="h-11 rounded-xl border-slate-200 bg-slate-50"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 border-slate-200"
+                          onClick={() => {
+                            if (kecamatanSuggestions.length === 0) {
+                              toast.error("Kecamatan tidak ditemukan.");
+                              return;
+                            }
+                            pickKecamatan(kecamatanSuggestions[0].name);
+                          }}
+                        >
+                          <Search className="mr-2 h-4 w-4" />
+                          Cari
+                        </Button>
+                      </div>
+                      {focusedGeoField === "kecamatan" && (
+                        kecamatanSuggestions.length > 0 ? (
+                          <div className="max-h-44 overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                            {kecamatanSuggestions.map((kecamatan) => (
+                              <button
+                                key={kecamatan.code}
+                                type="button"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  pickKecamatan(kecamatan.name);
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                              >
+                                {kecamatan.name}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+                            Tidak ada kecamatan yang cocok.
+                          </p>
+                        )
+                      )}
                     </div>
                   )}
 
                   {form.contributionScope === "kelurahan" && (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="kelurahan_id" className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    <div className="space-y-2">
+                      <Label htmlFor="collab-kelurahan" className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Kelurahan (Kampung)
                       </Label>
-                      <select
-                        id="kelurahan_id"
-                        value={form.kelurahanId}
-                        onChange={(e) => updateField("kelurahanId", e.target.value)}
-                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800"
-                        required
-                        disabled={!form.kecamatanId}
-                      >
-                        <option value="">Pilih kelurahan</option>
-                        {kelurahanOptions.map((kelurahan) => (
-                          <option key={kelurahan.id} value={kelurahan.id}>
-                            {kelurahan.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <Input
+                          id="collab-kelurahan"
+                          value={form.kelurahanName}
+                          onChange={(event) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              kelurahanName: event.target.value,
+                              kelurahanId: "",
+                            }));
+                          }}
+                          onFocus={() => setFocusedGeoField("kelurahan")}
+                          onBlur={closeGeoSuggestions}
+                          placeholder={form.kecamatanName ? "Ketik nama kelurahan" : "Isi kecamatan dulu atau ketik kelurahan"}
+                          autoComplete="off"
+                          className="h-11 rounded-xl border-slate-200 bg-slate-50"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 border-slate-200"
+                          onClick={() => {
+                            if (kelurahanSuggestions.length === 0) {
+                              toast.error("Kelurahan tidak ditemukan.");
+                              return;
+                            }
+                            pickKelurahan(kelurahanSuggestions[0]);
+                          }}
+                        >
+                          <Search className="mr-2 h-4 w-4" />
+                          Cari
+                        </Button>
+                      </div>
+                      {focusedGeoField === "kelurahan" && (
+                        kelurahanSuggestions.length > 0 ? (
+                          <div className="max-h-44 overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                            {kelurahanSuggestions.map((kelurahan) => (
+                              <button
+                                key={`${kelurahan.kecamatanName}-${kelurahan.name}`}
+                                type="button"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  pickKelurahan(kelurahan);
+                                }}
+                                className="flex w-full items-start justify-between rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                              >
+                                <span>{kelurahan.name}</span>
+                                <span className="ml-3 text-xs text-slate-500">{kelurahan.kecamatanName}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+                            Tidak ada kelurahan yang cocok.
+                          </p>
+                        )
+                      )}
                     </div>
+                  )}
+
+                  {geoOptions.length === 0 && form.contributionScope !== "kota" && (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      Data ID wilayah dari server belum termuat. Pencarian nama tetap aktif dan akan dicocokkan saat kirim.
+                    </p>
                   )}
 
                   <div className="space-y-1.5">
@@ -376,7 +615,7 @@ export function CollaborationPage({ onNavigate }: CollaborationPageProps) {
                     <Textarea
                       id="support_description"
                       value={form.supportDescription}
-                      onChange={(e) => updateField("supportDescription", e.target.value)}
+                      onChange={(event) => updateField("supportDescription", event.target.value)}
                       placeholder="Jelaskan kontribusi yang ingin Anda berikan"
                       rows={5}
                       className="rounded-xl border-slate-200 bg-slate-50"
