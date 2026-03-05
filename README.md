@@ -1,13 +1,14 @@
-﻿<div align="center">
+<div align="center">
 
-# SIMREKAP
-### Sistem Informasi Manajemen RElawan KAmpung Pancasila
+# SIMRP
+### Sistem Informasi Manajemen Relawan Kampung Pancasila
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?logo=vite)](https://vitejs.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?logo=supabase)](https://supabase.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite)](https://sqlite.org)
 
 Aplikasi web **mobile-first** untuk manajemen relawan, event kampung, dan verifikasi laporan kegiatan  
 berbasis **4 Pilar Pembangunan Kampung Pancasila** di Kota Surabaya.
@@ -57,38 +58,47 @@ Sistem ini melayani tiga jenis pengguna:
 ## 🎯 Fitur Utama
 
 ### ✅ Authentication & User Management
-- Dual login: **Relawan** (Email/Password via Supabase Auth) & **Admin** (username/password)
+- Dual login: **Relawan** (Email/Password) & **Admin** (username/password)
 - Registrasi dengan validasi kode pos Surabaya secara otomatis
-- Role-Based Access Control (Relawan / Moderator / Admin)
-- Session persistence dengan localStorage
+- Role-Based Access Control: `user` / `ksh` / `moderator_t2` / `admin`
+- Session token via custom auth (PBKDF2 password hashing)
+- Rate limiting pada endpoint auth & mutasi
 
 ### ✅ Gamification Engine
 - 7 Level Progression System: *Pendatang Baru → Legend Kampung*
-- Sistem poin otomatis berdasarkan aktivitas
+- Sistem poin otomatis berdasarkan aktivitas & verifikasi laporan
 - Badge System (expandable)
 - Leaderboard antar relawan
+- Temporary points & badge adjustment oleh admin
 
 ### ✅ Event Management
 - Browse event kampung dengan filter **4 Pilar**:
   - 🌱 Lingkungan · 🤝 Gotong Royong · 💼 Ekonomi Kreatif · 🛡️ Keamanan
-- RSVP (gabung event), tracking status upcoming/completed
-- 8 sample events sudah di-seed
+- Scope event: kelurahan / kecamatan / kota
+- RSVP (gabung event), tracking status `upcoming` / `completed`
+- Approval workflow oleh ASN/Admin
 
 ### ✅ Reporting Wizard (Offline-First)
 - 2-step wizard: **Upload Foto → Outcome Tags**
 - GPS lock saat foto diambil
 - Deteksi mode offline dengan indikator WiFi icon
 - Draft mode: laporan tersimpan di localStorage saat offline
+- Laporan hanya bisa dibuat setelah event berstatus `completed`
 
 ### ✅ Dashboard per Role
 - **User Dashboard** — Home, Event, Profile, More (bottom navigation mobile)
-- **Admin Dashboard** — statistik KPI, manajemen user & event, verifikasi laporan
+- **Admin Dashboard** — statistik KPI, manajemen user & event, verifikasi laporan, temporary adjustments
 - **Moderator Dashboard** — antrian laporan pending, quick approve/reject
 
+### ✅ Collaboration Request
+- Form pengajuan kemitraan dari organisasi/lembaga luar
+- Approval workflow oleh Moderator Tier 2 / Admin
+- Scope: kelurahan / kecamatan / kota
+
 ### ✅ Geographic Data System
-- Data lengkap 31 Kecamatan, 154 Kelurahan Surabaya
+- Data lengkap 31 Kecamatan, 154 Kelurahan Surabaya di database SQLite
 - Auto-fill kecamatan & kelurahan berdasarkan input kode pos
-- Real-time validation dengan visual feedback
+- REST endpoint `/kodepos/{code}` dan `/geo/options`
 
 ---
 
@@ -113,12 +123,28 @@ Sistem ini melayani tiga jenis pengguna:
 
 ### Backend
 
-| Teknologi | Kegunaan |
-|-----------|----------|
-| Hono | Lightweight REST API framework (Deno Edge Runtime) |
-| Supabase Auth | User authentication & session management |
-| Supabase KV Store | Data persistence via PostgreSQL-backed key-value store |
-| Supabase Edge Functions | Serverless API hosting |
+| Teknologi | Versi | Kegunaan |
+|-----------|-------|----------|
+| Python | 3.10+ | Runtime bahasa backend |
+| FastAPI | ≥0.111.0 | REST API framework |
+| Uvicorn | ≥0.29.0 | ASGI server |
+| Pydantic | ≥2.7.0 | Data validation & schema |
+| SQLite | bawaan Python | Database lokal (file-based) |
+
+### API Endpoints
+
+| Prefix | Deskripsi |
+|--------|-----------|
+| `/auth` | Signup, login, admin-login, get me |
+| `/events` | CRUD event, join, approve, complete |
+| `/reports` | Buat & verifikasi laporan kegiatan |
+| `/users` | Manajemen profil user |
+| `/admin` | Assign role, temporary adjustments |
+| `/collaboration-requests` | Form & review kemitraan |
+| `/kodepos/{code}` | Lookup wilayah dari kode pos |
+| `/geo/options` | Daftar semua kecamatan & kelurahan |
+| `/geo/stats` | Statistik data geografis |
+| `/health` | Health check endpoint |
 
 ---
 
@@ -127,14 +153,14 @@ Sistem ini melayani tiga jenis pengguna:
 ```
 diskominfointern/
 │
-├── 📄 index.html                    # HTML entry point (Vite requirement)
+├── 📄 index.html                    # HTML entry point (Vite)
 ├── 📄 vite.config.ts                # Vite configuration
 ├── 📄 postcss.config.mjs            # PostCSS configuration
-├── 📄 package.json                  # Dependencies & scripts
+├── 📄 package.json                  # Dependencies & npm scripts
 ├── 📄 .env.example                  # Environment variables template
 ├── 📄 .gitignore
 │
-├── 📁 src/                          # Frontend source code
+├── 📁 src/                          # Frontend source code (React + TypeScript)
 │   ├── main.tsx                     # Application entry point
 │   ├── App.tsx                      # Root component & router
 │   ├── 📁 app/                      # Page-level components & routing
@@ -148,18 +174,35 @@ diskominfointern/
 │   ├── 📁 utils/                    # Pure helper functions
 │   ├── 📁 lib/                      # Third-party library wrappers
 │   ├── 📁 styles/                   # Global CSS & design tokens
-│   └── ��� assets/                   # Images, icons, logos, fonts
+│   └── 📁 assets/                   # Images, icons, logos, fonts
 │
-├── 📁 supabase/
-│   └── 📁 functions/server/         # Hono REST API (Supabase Edge Function)
-│       ├── index.tsx                # API routes & business logic (18 endpoints)
-│       ├── kv_store.tsx             # KV Store interface
-│       └── config.toml              # Edge function config
+├── 📁 server/                       # Backend source code (Python + FastAPI)
+│   ├── main.py                      # FastAPI app entry point & middleware
+│   ├── config.py                    # Konfigurasi env vars & settings
+│   ├── database.py                  # SQLite connection & helpers
+│   ├── requirements.txt             # Python dependencies
+│   ├── 📁 routes/                   # API route handlers
+│   │   ├── auth.py                  # Authentication endpoints
+│   │   ├── events.py                # Event management endpoints
+│   │   ├── reports.py               # Report endpoints
+│   │   ├── users.py                 # User management endpoints
+│   │   ├── admin.py                 # Admin-only endpoints
+│   │   ├── collab.py                # Collaboration request endpoints
+│   │   └── geo.py                   # Geographic data endpoints
+│   ├── 📁 core/                     # Business logic & utilities
+│   │   ├── auth.py                  # Auth helpers, session, hashing
+│   │   ├── xp.py                    # XP/poin calculation logic
+│   │   ├── security.py              # Rate limiting, headers
+│   │   ├── validators.py            # Input validators
+│   │   └── geo.py                   # Geographic data helpers
+│   ├── 📁 models/                   # Pydantic request/response models
+│   └── 📁 db/                       # Database schema & migrations
+│       └── schema.py                # SQLite schema initialization
 │
 ├── 📁 scripts/                      # Utility & automation scripts
-│   ├── dev-local.mjs                # Local dev runner (frontend + API)
-│   ├── seed_supabase.mjs            # Seed initial data to Supabase
-│   ├── import_kodepos_surabaya.mjs  # Import Surabaya postal code data
+│   ├── dev-local.mjs                # Local dev runner (frontend + API sekaligus)
+│   ├── seed_supabase.mjs            # (Legacy) seed script
+│   ├── import_kodepos_surabaya.mjs  # Import data kode pos Surabaya
 │   ├── import_kodepos_from_geodata.mjs
 │   └── loadEnv.mjs                  # Environment variable loader
 │
@@ -194,10 +237,9 @@ diskominfointern/
 Pastikan sudah terinstall:
 
 - **Node.js** v18 atau lebih baru — [download](https://nodejs.org)
-- **npm** v8 atau lebih baru (bundled dengan Node.js)
-
-Opsional (untuk backend production):
-- Akun **Supabase** — [supabase.com](https://supabase.com)
+- **Python** 3.10 atau lebih baru — [download](https://python.org)
+- **npm** v8+ (bundled dengan Node.js)
+- **pip** (bundled dengan Python)
 
 ### Instalasi
 
@@ -207,12 +249,17 @@ git clone https://github.com/lustresense/diskominfointern.git
 cd diskominfointern
 ```
 
-**2. Install dependencies:**
+**2. Install dependencies frontend:**
 ```bash
 npm install
 ```
 
-**3. Siapkan environment variables:**
+**3. Install dependencies backend:**
+```bash
+pip install -r server/requirements.txt
+```
+
+**4. Siapkan environment variables:**
 ```bash
 # macOS / Linux
 cp .env.example .env.local
@@ -221,17 +268,25 @@ cp .env.example .env.local
 copy .env.example .env.local
 ```
 
-**4. Edit `.env.local`** dan sesuaikan nilai variabel dengan konfigurasi proyek kamu (lihat seksi [Environment Variables](#-environment-variables)).
+**5. Edit `.env.local`** sesuai konfigurasi lokal kamu (lihat seksi [Environment Variables](#-environment-variables)).
 
 ---
 
 ## 🔧 Environment Variables
 
-| Variable | Deskripsi | Contoh |
-|----------|-----------|--------|
+Buat file `.env.local` berdasarkan `.env.example`:
+
+| Variable | Deskripsi | Default |
+|----------|-----------|---------|
 | `VITE_API_BASE_URL` | Base URL backend API | `http://127.0.0.1:8000/make-server-32aa5c5c` |
-| `VITE_SUPABASE_URL` | Supabase project URL | `https://xxxx.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | `eyJhbGci...` |
+| `SIMRP_ENV` | Mode environment | `development` |
+| `SIMRP_DB_PATH` | Path ke file database SQLite | `./database/runtime/database.db` |
+| `SIMRP_PBKDF2_ITERATIONS` | Iterasi hashing password | `210000` |
+| `SIMRP_SESSION_TTL_HOURS` | Durasi sesi login (jam) | `168` (dev) / `24` (prod) |
+| `SIMRP_ALLOWED_ORIGINS` | Origins yang diizinkan (production) | — |
+| `SIMRP_ADMIN_LOGIN_USERNAME` | Username admin login | `admin` |
+| `SIMRP_ADMIN_LOGIN_PASSWORD` | Password admin login | `admin` |
+| `SIMRP_SEED_ADMIN_PASSWORD` | Password awal seed admin | `admin` |
 
 > ⚠️ **Jangan pernah commit `.env.local`** ke repository.  
 > File ini sudah terdaftar di `.gitignore`. Gunakan `.env.example` sebagai template.
@@ -240,7 +295,7 @@ copy .env.example .env.local
 
 ## ▶️ Menjalankan Aplikasi
 
-### Development (Frontend + Local API sekaligus)
+### Development (Frontend + Backend sekaligus)
 
 ```bash
 npm run dev
@@ -248,7 +303,7 @@ npm run dev
 
 Menjalankan secara bersamaan:
 - 🌐 **Frontend** → `http://localhost:5173`
-- ⚙️ **Local API** → `http://127.0.0.1:8000/make-server-32aa5c5c`
+- ⚙️ **Backend API** → `http://127.0.0.1:8000/make-server-32aa5c5c`
 
 ### Menjalankan Secara Terpisah
 
@@ -256,8 +311,10 @@ Menjalankan secara bersamaan:
 # Frontend saja
 npm run dev:web
 
-# Backend API saja
+# Backend API saja (FastAPI + Uvicorn)
 npm run api
+# atau langsung:
+python -m uvicorn server.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### Build untuk Production
@@ -272,6 +329,7 @@ Output build akan tersimpan di folder `dist/`.
 
 ```bash
 curl http://127.0.0.1:8000/make-server-32aa5c5c/health
+# Expected: {"status": "ok"}
 ```
 
 ---
@@ -281,7 +339,7 @@ curl http://127.0.0.1:8000/make-server-32aa5c5c/health
 | Role | Username / Email | Password | Cara Login |
 |------|-----------------|----------|------------|
 | **Admin** | `admin` | `admin` | Halaman `/login` → tab **"Admin"** |
-| **Relawan** | Daftar baru via `/register` | (bebas) | Gunakan kode pos Surabaya, contoh: `60111` |
+| **Relawan** | Daftar baru via `/register` | (bebas, min 8 karakter + kombinasi huruf-angka) | Gunakan kode pos Surabaya |
 | **Moderator** | Dikonfigurasi via Admin Dashboard | — | Login sebagai user dengan role moderator |
 
 **Contoh kode pos Surabaya yang valid:**
